@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Invisible Notes — sticky notes invisible to screen sharing</title>
+<meta name="description" content="Translucent desktop sticky notes that float on top of everything but stay invisible to screen sharing and recording. Free & open source for macOS and Windows." />
+<link rel="icon" href="icon.png" />
+
+<!-- Open Graph -->
+<meta property="og:title" content="Invisible Notes" />
+<meta property="og:description" content="Sticky notes that float on top of everything but stay invisible to screen sharing and recording." />
+<meta property="og:image" content="icon.png" />
+<meta property="og:type" content="website" />
+
+<style>
+  :root {
+    --bg: #16181d;
+    --bg-2: #1d2027;
+    --card: #22252d;
+    --line: #ffd764;
+    --ink: #f3f4f6;
+    --muted: #a2a7b3;
+    --accent: #ffd764;
+    --accent-ink: #2a2410;
+    --danger: #ff6b6b;
+    --radius: 16px;
+    --maxw: 1080px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: radial-gradient(1200px 700px at 70% -10%, #2a2f3b 0%, var(--bg) 55%) no-repeat;
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+  }
+  a { color: inherit; }
+  .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 24px; }
+
+  /* Nav */
+  nav {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 22px 0;
+  }
+  .brand { display: flex; align-items: center; gap: 12px; font-weight: 700; font-size: 18px; }
+  .brand img { width: 34px; height: 34px; border-radius: 8px; }
+  .nav-links { display: flex; gap: 26px; align-items: center; font-size: 15px; }
+  .nav-links a { color: var(--muted); text-decoration: none; transition: color .15s; }
+  .nav-links a:hover { color: var(--ink); }
+  .gh-btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    border: 1px solid #333844; padding: 8px 14px; border-radius: 10px;
+    color: var(--ink) !important; text-decoration: none; font-size: 14px;
+    transition: border-color .15s, background .15s;
+  }
+  .gh-btn:hover { border-color: var(--accent); background: #ffffff08; }
+
+  /* Hero */
+  .hero { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 48px; align-items: center; padding: 60px 0 40px; }
+  .pill {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: #ffd76418; color: var(--accent); border: 1px solid #ffd76433;
+    padding: 6px 12px; border-radius: 999px; font-size: 13px; font-weight: 600; margin-bottom: 22px;
+  }
+  h1 { font-size: clamp(34px, 5vw, 56px); line-height: 1.08; letter-spacing: -0.02em; font-weight: 800; }
+  h1 .hl { color: var(--accent); }
+  .sub { color: var(--muted); font-size: 19px; margin: 20px 0 30px; max-width: 34ch; }
+
+  .cta-row { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 10px;
+    background: var(--accent); color: var(--accent-ink);
+    padding: 14px 22px; border-radius: 12px; font-weight: 700; font-size: 16px;
+    text-decoration: none; border: none; cursor: pointer;
+    transition: transform .12s ease, box-shadow .12s ease, opacity .15s;
+    box-shadow: 0 8px 24px #ffd76426;
+  }
+  .btn:hover { transform: translateY(-2px); box-shadow: 0 12px 30px #ffd76438; }
+  .btn.secondary { background: var(--card); color: var(--ink); box-shadow: none; border: 1px solid #333844; }
+  .btn.secondary:hover { border-color: var(--accent); }
+  .btn svg { width: 20px; height: 20px; }
+  .alt-dl { font-size: 14px; color: var(--muted); margin-top: 14px; }
+  .alt-dl a { color: var(--accent); text-decoration: none; }
+  .alt-dl a:hover { text-decoration: underline; }
+
+  /* Hero art: a stack of translucent notes over a "shared screen" */
+  .art {
+    position: relative; height: 360px;
+    border-radius: 20px; overflow: hidden;
+    background: linear-gradient(135deg, #2b3140 0%, #20242d 100%);
+    border: 1px solid #ffffff10;
+  }
+  .screen {
+    position: absolute; inset: 0;
+    background:
+      repeating-linear-gradient(0deg, #ffffff08 0 1px, transparent 1px 34px),
+      repeating-linear-gradient(90deg, #ffffff08 0 1px, transparent 1px 34px),
+      linear-gradient(135deg, #313746, #232732);
+  }
+  .screen .rec {
+    position: absolute; top: 14px; left: 14px; display: flex; align-items: center; gap: 8px;
+    font-size: 12px; color: #ff9d9d; background: #ff6b6b1a; padding: 5px 10px; border-radius: 8px; border: 1px solid #ff6b6b33;
+  }
+  .screen .rec .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--danger); animation: blink 1.4s infinite; }
+  @keyframes blink { 50% { opacity: .3; } }
+  .note-card {
+    position: absolute; border-radius: 12px; padding: 14px 16px;
+    background: rgba(255, 224, 130, 0.9); color: #2a2410;
+    box-shadow: 0 10px 30px #0006; font-size: 13px; width: 190px;
+    border: 1px solid #00000012;
+  }
+  .note-card.n1 { top: 60px; left: 40px; transform: rotate(-4deg); }
+  .note-card.n2 { top: 150px; left: 150px; transform: rotate(3deg); background: rgba(170,214,255,.9); }
+  .note-card b { display: block; margin-bottom: 4px; }
+  .ghost-badge {
+    position: absolute; bottom: 16px; right: 16px;
+    display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--accent);
+    background: #16181dcc; padding: 7px 12px; border-radius: 999px; border: 1px dashed #ffd76455;
+  }
+
+  /* Sections */
+  section { padding: 56px 0; }
+  .section-head { text-align: center; max-width: 620px; margin: 0 auto 44px; }
+  .section-head h2 { font-size: clamp(26px, 3.4vw, 36px); letter-spacing: -0.02em; font-weight: 800; }
+  .section-head p { color: var(--muted); margin-top: 12px; font-size: 17px; }
+
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .feature {
+    background: var(--card); border: 1px solid #ffffff0d; border-radius: var(--radius);
+    padding: 26px; transition: border-color .15s, transform .15s;
+  }
+  .feature:hover { border-color: #ffd76440; transform: translateY(-3px); }
+  .feature .ico { font-size: 26px; margin-bottom: 14px; }
+  .feature h3 { font-size: 18px; margin-bottom: 8px; }
+  .feature p { color: var(--muted); font-size: 15px; }
+
+  /* Steps */
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; counter-reset: s; }
+  .step { background: var(--bg-2); border-radius: var(--radius); padding: 26px; border: 1px solid #ffffff0d; }
+  .step::before {
+    counter-increment: s; content: counter(s);
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 34px; height: 34px; border-radius: 10px; background: var(--accent); color: var(--accent-ink);
+    font-weight: 800; margin-bottom: 14px;
+  }
+  .step h3 { font-size: 17px; margin-bottom: 6px; }
+  .step p { color: var(--muted); font-size: 15px; }
+  .step code { background: #0003; padding: 2px 7px; border-radius: 6px; font-size: 13px; }
+
+  /* Callout */
+  .callout {
+    background: linear-gradient(135deg, #ffd7641a, #ffd76408);
+    border: 1px solid #ffd76433; border-radius: 20px;
+    padding: 40px; text-align: center;
+  }
+  .callout h2 { font-size: 28px; font-weight: 800; margin-bottom: 12px; }
+  .callout p { color: var(--muted); max-width: 46ch; margin: 0 auto 24px; }
+
+  footer { border-top: 1px solid #ffffff10; padding: 30px 0; color: var(--muted); font-size: 14px; }
+  .foot { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px; }
+  footer a { color: var(--muted); text-decoration: none; }
+  footer a:hover { color: var(--ink); }
+
+  @media (max-width: 860px) {
+    .hero { grid-template-columns: 1fr; gap: 30px; }
+    .art { height: 300px; }
+    .grid, .steps { grid-template-columns: 1fr; }
+    .nav-links a:not(.gh-btn) { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <nav>
+    <div class="brand"><img src="icon.png" alt="Invisible Notes icon" /> Invisible Notes</div>
+    <div class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#how">How it works</a>
+      <a class="gh-btn" href="https://github.com/navyabijoy/invisible-notes" target="_blank" rel="noopener">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z"></path></svg>
+        GitHub
+      </a>
+    </div>
+  </nav>
+
+  <header class="hero">
+    <div>
+      <span class="pill">🔒 Invisible to Zoom, Meet, QuickTime & OBS</span>
+      <h1>Sticky notes that <span class="hl">disappear</span> from screen shares.</h1>
+      <p class="sub">Keep private talking points, cheat sheets, and reminders floating on your screen — while everyone watching your shared screen or recording sees nothing.</p>
+      <div class="cta-row">
+        <a class="btn" id="primaryDownload" href="https://github.com/navyabijoy/invisible-notes/releases/latest">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span id="primaryLabel">Download</span>
+        </a>
+        <a class="btn secondary" id="secondaryDownload" href="https://github.com/navyabijoy/invisible-notes/releases/latest">Other platform</a>
+      </div>
+      <div class="alt-dl">
+        Free & open source (MIT) · <a href="https://github.com/navyabijoy/invisible-notes/releases/latest" target="_blank" rel="noopener">All downloads &amp; releases →</a>
+      </div>
+    </div>
+
+    <div class="art" aria-hidden="true">
+      <div class="screen">
+        <div class="rec"><span class="dot"></span> REC · Screen sharing</div>
+        <div class="note-card n1"><b>Interview notes</b>Mention the caching layer + the migration story.</div>
+        <div class="note-card n2"><b>Reminders</b>Ask about team size &amp; on-call rotation.</div>
+        <div class="ghost-badge">👻 Hidden from capture</div>
+      </div>
+    </div>
+  </header>
+</div>
+
+<section id="features">
+  <div class="wrap">
+    <div class="section-head">
+      <h2>Yours to see. Invisible to everyone else.</h2>
+      <p>Built with a real OS-level capture-exclusion flag — not a hack. The notes simply don't exist in any recording or shared feed.</p>
+    </div>
+    <div class="grid">
+      <div class="feature"><div class="ico">🫥</div><h3>Invisible to capture</h3><p>Uses content protection so Zoom, Meet, Teams, QuickTime, OBS and macOS recording all skip the notes entirely.</p></div>
+      <div class="feature"><div class="ico">👻</div><h3>Click-through mode</h3><p>Flip a note to ghost mode and your clicks pass straight through to the app behind it — the note stays visible.</p></div>
+      <div class="feature"><div class="ico">🪟</div><h3>Always on top</h3><p>Floats above everything, including fullscreen apps and other displays, so your notes are always in reach.</p></div>
+      <div class="feature"><div class="ico">🎨</div><h3>Make it yours</h3><p>Six colors, adjustable opacity and text size per note. Drag, resize, and stack as many as you like.</p></div>
+      <div class="feature"><div class="ico">💾</div><h3>Auto-saved</h3><p>Text, position, size and style persist automatically and reappear exactly where you left them.</p></div>
+      <div class="feature"><div class="ico">⌨️</div><h3>Menu-bar & shortcuts</h3><p>Lives quietly in the menu bar / tray. New note, hide-all, and click-through all have global hotkeys.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="how">
+  <div class="wrap">
+    <div class="section-head">
+      <h2>Up and running in seconds</h2>
+      <p>No account, no cloud, no telemetry. Download, open, start typing.</p>
+    </div>
+    <div class="steps">
+      <div class="step"><h3>Install</h3><p>Grab the build for your OS and open it. On macOS, right-click → <code>Open</code> the first time.</p></div>
+      <div class="step"><h3>Jot a note</h3><p>A note appears near your cursor. Press <code>⌘⇧N</code> / <code>Ctrl+Shift+N</code> for more.</p></div>
+      <div class="step"><h3>Share with confidence</h3><p>Start your call or recording — your notes stay on screen for you, and vanish for everyone else.</p></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="callout">
+      <h2>Ready to take invisible notes?</h2>
+      <p>Free forever, open source, and privacy-first. No sign-up required.</p>
+      <a class="btn" id="calloutDownload" href="https://github.com/navyabijoy/invisible-notes/releases/latest">Download for free</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap foot">
+    <div>© 2026 Navya Bijoy · MIT Licensed</div>
+    <div style="display:flex; gap:20px;">
+      <a href="https://github.com/navyabijoy/invisible-notes" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://github.com/navyabijoy/invisible-notes/releases" target="_blank" rel="noopener">Releases</a>
+      <a href="https://github.com/navyabijoy/invisible-notes/issues" target="_blank" rel="noopener">Report an issue</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // Detect the visitor's OS and wire up download buttons to the latest release
+  // assets (fetched live from the GitHub API, with sensible fallbacks).
+  const REPO = "navyabijoy/invisible-notes";
+  const RELEASES = "https://github.com/" + REPO + "/releases/latest";
+
+  const ua = navigator.userAgent;
+  const isWin = /Windows/i.test(ua);
+  const isMac = /Macintosh|Mac OS X/i.test(ua);
+
+  const state = {
+    mac: { label: "Download for macOS", url: RELEASES },
+    win: { label: "Download for Windows", url: RELEASES }
+  };
+
+  function pickAsset(assets, exts) {
+    for (const a of assets) {
+      const n = a.name.toLowerCase();
+      if (exts.some(e => n.endsWith(e))) return a.browser_download_url;
+    }
+    return null;
+  }
+
+  function render() {
+    const primary = document.getElementById("primaryDownload");
+    const primaryLabel = document.getElementById("primaryLabel");
+    const secondary = document.getElementById("secondaryDownload");
+    const callout = document.getElementById("calloutDownload");
+
+    const first = isWin ? state.win : state.mac;      // default to mac if unknown
+    const other = isWin ? state.mac : state.win;
+
+    primaryLabel.textContent = first.label;
+    primary.href = first.url;
+    callout.href = first.url;
+    secondary.textContent = other.label;
+    secondary.href = other.url;
+  }
+
+  render();
+
+  fetch("https://api.github.com/repos/" + REPO + "/releases/latest")
+    .then(r => r.ok ? r.json() : Promise.reject(r.status))
+    .then(rel => {
+      const assets = rel.assets || [];
+      const dmg = pickAsset(assets, [".dmg"]);
+      const exe = pickAsset(assets, [".exe"]);
+      if (dmg) state.mac.url = dmg;
+      if (exe) state.win.url = exe;
+      const ver = rel.tag_name ? " (" + rel.tag_name + ")" : "";
+      state.mac.label = "Download for macOS" + ver;
+      state.win.label = "Download for Windows" + ver;
+      render();
+    })
+    .catch(() => { /* keep fallback links to the releases page */ });
+</script>
+
+</body>
+</html>
