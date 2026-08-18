@@ -1,7 +1,7 @@
 {
   "name": "invisible-notes",
-  "version": "1.0.0",
-  "description": "Translucent sticky notes that stay invisible to screen sharing and recording.",
+  "version": "1.1.0",
+  "description": "Ghost Notes: translucent sticky notes that stay invisible to screen sharing and recording.",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
@@ -34,7 +34,7 @@
   },
   "build": {
     "appId": "com.invisiblenotes.app",
-    "productName": "Invisible Notes",
+    "productName": "Ghost Notes",
     "directories": {
       "buildResources": "build"
     },
@@ -42,7 +42,18 @@
       "main.js",
       "preload.js",
       "note.html",
-      "note.js"
+      "note.js",
+      "store.js",
+      "platform.js",
+      "noteWindow.js",
+      "displayUtils.js",
+      "shortcuts.js",
+      "manager.js",
+      "manager-preload.js",
+      "manager.html",
+      "manager-renderer.js",
+      "build/tray-icon.png",
+      "build/tray-icon@2x.png"
     ],
     "mac": {
       "category": "public.app-category.productivity",
@@ -50,7 +61,11 @@
         "dmg",
         "zip"
       ],
-      "icon": "build/icon.png"
+      "icon": "build/icon.png",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist"
     },
     "win": {
       "target": "nsis",
@@ -58,7 +73,15 @@
     },
     "nsis": {
       "oneClick": false,
-      "allowToChangeInstallationDirectory": true
-    }
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Ghost Notes"
+    },
+    "publish": [
+      {
+        "provider": "github"
+      }
+    ]
   }
 }

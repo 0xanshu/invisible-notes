@@ -15,8 +15,11 @@ const body = document.body;
 const textEl = document.getElementById('text');
 const opacityEl = document.getElementById('opacity');
 const swatchesEl = document.getElementById('swatches');
+const colorBtn = document.getElementById('colorBtn');
+const colorPopover = document.getElementById('colorPopover');
+const pinBtn = document.getElementById('pin');
 
-let state = { text: '', color: 'yellow', opacity: 0.85, fontSize: 15, ghost: false };
+let state = { text: '', color: 'yellow', opacity: 0.85, fontSize: 15, ghost: false, pinned: true };
 
 const noteEl = document.querySelector('.note');
 const barEl = document.querySelector('.bar');
@@ -40,6 +43,10 @@ function applyGhost() {
   } else {
     setIgnore(false); // fully interactive again
   }
+  // While ghosted, the note is always forced on top (main process) so it
+  // stays reachable — the pin toggle has no effect until ghost ends.
+  pinBtn.disabled = state.ghost;
+  pinBtn.style.opacity = state.ghost ? '0.25' : '';
 }
 
 function setGhost(on) {
@@ -54,6 +61,26 @@ window.addEventListener('mousemove', (e) => {
   setIgnore(!e.target.closest('.bar'));
 });
 
+// --- Pin (always-on-top) toggle ---
+// Pinned notes stay above whatever app you switch to, on both macOS and
+// Windows. Unpinned notes behave like a normal window and get covered by
+// whatever's currently focused. The main process owns the actual
+// setAlwaysOnTop call; this just reflects/requests the state.
+function applyPinned() {
+  pinBtn.classList.toggle('active', state.pinned);
+  pinBtn.title = state.pinned
+    ? 'Pinned: stays on top when you switch apps'
+    : 'Not pinned: can be covered by other windows';
+}
+
+function setPinned(on) {
+  state.pinned = on;
+  applyPinned();
+  window.notes.setPinned(id, on);
+}
+
+pinBtn.addEventListener('click', () => setPinned(!state.pinned));
+
 function applyColor(color) {
   const c = COLORS[color] || COLORS.yellow;
   root.style.setProperty('--tint', c.tint);
@@ -63,6 +90,23 @@ function applyColor(color) {
   }
 }
 
+// --- Compact color popover ---
+// Keep header minimal: one dot button opens a small palette instead of
+// showing every swatch inline. Lives inside .bar so it inherits the same
+// drag/no-drag and ghost-mode hover-to-interact rules as the rest of the toolbar.
+function setColorPopoverOpen(open) {
+  colorPopover.classList.toggle('open', open);
+}
+
+colorBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  setColorPopoverOpen(!colorPopover.classList.contains('open'));
+});
+
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.color-control')) setColorPopoverOpen(false);
+});
+
 function applyState() {
   applyColor(state.color);
   root.style.setProperty('--opacity', state.opacity);
@@ -70,6 +114,7 @@ function applyState() {
   opacityEl.value = Math.round(state.opacity * 100);
   textEl.value = state.text;
   applyGhost();
+  applyPinned();
 }
 
 function push() {
@@ -93,6 +138,7 @@ for (const name of Object.keys(COLORS)) {
   s.addEventListener('click', () => {
     state.color = name;
     applyColor(name);
+    setColorPopoverOpen(false);
     push();
   });
   swatchesEl.appendChild(s);

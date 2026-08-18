@@ -28,14 +28,26 @@ jobs:
 
       - run: npm ci
 
+      # Signing/notarization only activates if the corresponding secrets are
+      # configured in the repo (Settings -> Secrets and variables -> Actions).
+      # Unset secrets resolve to empty strings and electron-builder falls back
+      # to an unsigned build — see RELEASE.md for what to add for a fully
+      # signed & notarized production release.
       - name: Build & publish (macOS universal)
         if: matrix.os == 'macos-latest'
         run: npx electron-builder --mac --universal --publish always
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_LINK: ${{ secrets.MAC_CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.MAC_CSC_KEY_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
 
       - name: Build & publish (Windows)
         if: matrix.os == 'windows-latest'
         run: npx electron-builder --win --publish always
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}

@@ -1,104 +1,105 @@
-const { app, BrowserWindow, globalShortcut, ipcMain, screen, Tray, Menu, nativeImage } = require('electron');
+const { app, ipcMain, screen, Tray, Menu, nativeImage, dialog, powerMonitor } = require('electron');
 const path = require('path');
-const fs = require('fs');
+const { NoteStore } = require('./store');
+const platform = require('./platform');
+const { createNoteWindow } = require('./noteWindow');
+const { clampToVisibleDisplay, displayIdForPoint } = require('./displayUtils');
+const { registerShortcuts, unregisterAll } = require('./shortcuts');
+const { createManagerModule } = require('./manager');
 
-// ---------- Persistence ----------
-const storePath = path.join(app.getPath('userData'), 'notes.json');
-
-function loadNotes() {
-  try {
-    const raw = fs.readFileSync(storePath, 'utf8');
-    const data = JSON.parse(raw);
-    if (Array.isArray(data.notes)) return data;
-  } catch (_) {}
-  return { notes: [] };
-}
-
-function saveNotes() {
-  const notes = [];
-  for (const [id, win] of noteWindows) {
-    if (win.isDestroyed()) continue;
-    const [x, y] = win.getPosition();
-    const [width, height] = win.getSize();
-    notes.push({
-      id,
-      x, y, width, height,
-      text: noteState.get(id)?.text ?? '',
-      color: noteState.get(id)?.color ?? 'yellow',
-      opacity: noteState.get(id)?.opacity ?? 0.85,
-      fontSize: noteState.get(id)?.fontSize ?? 15,
-      ghost: noteState.get(id)?.ghost ?? false
-    });
+// Show plain-language notices only — never a raw stack trace to the user.
+let writeErrorShown = false;
+const store = new NoteStore(app.getPath('userData'), {
+  onCorrupted: () => {
+    dialog.showErrorBox(
+      'Notes file was reset',
+      'Your saved notes file could not be read and looked corrupted, so it was backed up and Ghost Notes started fresh. Your previous notes were not deleted — the backup is in the app data folder if you need to recover them.'
+    );
+  },
+  onWriteError: () => {
+    if (writeErrorShown) return;
+    writeErrorShown = true;
+    dialog.showErrorBox(
+      'Could not save notes',
+      'Ghost Notes could not write to its data folder. Check that the app has permission to write there and that the disk is not full. Your notes in memory are safe until you quit.'
+    );
   }
-  try {
-    fs.writeFileSync(storePath, JSON.stringify({ notes }, null, 2));
-  } catch (e) {
-    console.error('Failed to save notes:', e);
-  }
-}
+});
 
-// ---------- Window management ----------
+// Open BrowserWindows only — a subset of store records. A record can exist
+// (and be listed in the future Notes Manager) with no entry here at all,
+// which is exactly the "closed but not deleted" state the X button needs.
 const noteWindows = new Map(); // id -> BrowserWindow
-const noteState = new Map();   // id -> { text, color, opacity, fontSize }
-let notesHidden = false;
 let tray = null;
 
-function nextId() {
-  return 'note-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 6);
-}
+const manager = createManagerModule({
+  store,
+  actions: {
+    showNote: (id) => showNote(id),
+    hideNote: (id) => hideNote(id),
+    deleteNoteRecord: (id) => deleteNoteRecord(id),
+    renameNote: (id, title) => renameNote(id, title),
+    createNote: () => createNoteNearCursor()
+  }
+});
 
-function createNoteWindow(note) {
-  const id = note.id || nextId();
-
-  const win = new BrowserWindow({
-    width: note.width || 300,
-    height: note.height || 220,
-    x: note.x,
-    y: note.y,
-    frame: false,
-    transparent: true,
-    resizable: true,
-    hasShadow: false,
-    alwaysOnTop: true,
-    skipTaskbar: true,
-    minWidth: 160,
-    minHeight: 120,
-    backgroundColor: '#00000000',
-    webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
-      contextIsolation: true,
-      nodeIntegration: false
+function openNoteWindow(record) {
+  const win = createNoteWindow(record, {
+    onMoved: (w) => {
+      const [x, y] = w.getPosition();
+      store.update(record.id, { x, y, displayId: displayIdForPoint(x, y) });
+    },
+    onResized: (w) => {
+      const [x, y] = w.getPosition();
+      const [width, height] = w.getSize();
+      store.update(record.id, { x, y, width, height, displayId: displayIdForPoint(x, y) });
+    },
+    onClosed: () => {
+      noteWindows.delete(record.id);
     }
   });
+  noteWindows.set(record.id, win);
+  return win;
+}
 
-  // The magic: exclude this window from screen capture / sharing / recording.
-  win.setContentProtection(true);
+function showNote(id) {
+  const existing = noteWindows.get(id);
+  if (existing && !existing.isDestroyed()) {
+    existing.showInactive();
+  } else {
+    const record = store.get(id);
+    if (!record) return;
+    openNoteWindow(record);
+  }
+  store.update(id, { visible: true });
+  updateTrayMenu();
+  manager.notifyChanged();
+}
 
-  // Float above everything, including fullscreen apps you may be sharing.
-  win.setAlwaysOnTop(true, 'screen-saver');
-  win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreenSpaces: true });
+// The note's X button calls this via IPC. It hides the window; the record
+// (and its content) stays in the store untouched. This is intentionally
+// NOT window.close()/destroy() — only Notes Manager delete removes a record.
+function hideNote(id) {
+  const win = noteWindows.get(id);
+  if (win && !win.isDestroyed()) win.hide();
+  store.update(id, { visible: false });
+  updateTrayMenu();
+  manager.notifyChanged();
+}
 
-  noteWindows.set(id, win);
-  noteState.set(id, {
-    text: note.text || '',
-    color: note.color || 'yellow',
-    opacity: typeof note.opacity === 'number' ? note.opacity : 0.85,
-    fontSize: note.fontSize || 15,
-    ghost: !!note.ghost
-  });
+function deleteNoteRecord(id) {
+  const win = noteWindows.get(id);
+  if (win && !win.isDestroyed()) win.destroy();
+  noteWindows.delete(id);
+  store.remove(id);
+  updateTrayMenu();
+  manager.notifyChanged();
+}
 
-  win.loadFile('note.html', { query: { id } });
-
-  win.on('closed', () => {
-    noteWindows.delete(id);
-    noteState.delete(id);
-    saveNotes();
-  });
-
-  win.on('moved', saveNotes);
-  win.on('resized', saveNotes);
-
-  return id;
+function renameNote(id, title) {
+  store.update(id, { title });
+  updateTrayMenu();
+  manager.notifyChanged();
 }
 
 function createNoteNearCursor() {
@@ -109,48 +110,20 @@ function createNoteNearCursor() {
   const offset = (noteWindows.size % 6) * 26;
   const x = Math.min(cursor.x, wa.x + wa.width - 320) + offset;
   const y = Math.min(cursor.y, wa.y + wa.height - 240) + offset;
-  const id = createNoteWindow({ x, y });
-  saveNotes();
-  return id;
+  const record = store.create({ x, y, displayId: display.id });
+  openNoteWindow(record);
+  updateTrayMenu();
+  manager.notifyChanged();
+  return record.id;
 }
 
 function toggleHideAll() {
-  notesHidden = !notesHidden;
-  for (const win of noteWindows.values()) {
-    if (win.isDestroyed()) continue;
-    if (notesHidden) win.hide();
-    else win.showInactive();
+  const anyVisible = store.all().some((n) => n.visible);
+  for (const record of store.all()) {
+    if (anyVisible) hideNote(record.id);
+    else showNote(record.id);
   }
-  updateTrayMenu();
 }
-
-function showAll() {
-  notesHidden = false;
-  for (const win of noteWindows.values()) {
-    if (!win.isDestroyed()) win.showInactive();
-  }
-  updateTrayMenu();
-}
-
-// ---------- IPC from renderer ----------
-ipcMain.on('note:update', (e, { id, text, color, opacity, fontSize, ghost }) => {
-  const state = noteState.get(id);
-  if (!state) return;
-  if (typeof text === 'string') state.text = text;
-  if (color) state.color = color;
-  if (typeof opacity === 'number') state.opacity = opacity;
-  if (typeof fontSize === 'number') state.fontSize = fontSize;
-  if (typeof ghost === 'boolean') state.ghost = ghost;
-  saveNotes();
-});
-
-// Toggle whether a note lets clicks pass through to whatever is behind it.
-// forward:true keeps mouse-move events flowing so the renderer can re-enable
-// interaction over the toolbar.
-ipcMain.on('note:setIgnoreMouse', (e, { id, ignore }) => {
-  const win = noteWindows.get(id);
-  if (win && !win.isDestroyed()) win.setIgnoreMouseEvents(ignore, { forward: true });
-});
 
 function toggleGhostAll() {
   for (const win of noteWindows.values()) {
@@ -158,78 +131,181 @@ function toggleGhostAll() {
   }
 }
 
-ipcMain.handle('note:getState', (e, id) => noteState.get(id) || null);
+// Recover notes whose saved position is no longer on any connected display
+// (monitor unplugged, resolution/DPI changed, etc.) instead of leaving them
+// permanently unreachable.
+function reconcileOpenWindowsToDisplays() {
+  for (const [id, win] of noteWindows) {
+    if (win.isDestroyed()) continue;
+    const [x, y] = win.getPosition();
+    const [width, height] = win.getSize();
+    const safe = clampToVisibleDisplay({ x, y, width, height });
+    if (safe.x !== x || safe.y !== y) {
+      win.setBounds({ x: safe.x, y: safe.y, width, height });
+      store.update(id, { x: safe.x, y: safe.y, displayId: safe.displayId });
+    }
+  }
+}
 
-ipcMain.on('note:close', (e, id) => {
-  const win = noteWindows.get(id);
-  if (win && !win.isDestroyed()) win.close();
+// ---------- IPC from renderer ----------
+ipcMain.on('note:update', (e, payload) => {
+  if (!payload || typeof payload.id !== 'string') return;
+  const { id, text, color, opacity, fontSize, ghost } = payload;
+  const patch = {};
+  if (typeof text === 'string') patch.text = text;
+  if (typeof color === 'string') patch.color = color;
+  if (typeof opacity === 'number') patch.opacity = opacity;
+  if (typeof fontSize === 'number') patch.fontSize = fontSize;
+  if (typeof ghost === 'boolean') patch.ghost = ghost;
+  const record = store.update(id, patch);
+
+  // Click-through mode only works if you can still reach the note to turn
+  // it back off (hover the toolbar) or drag it. If an unpinned note were
+  // covered by another window while click-through, there'd be no way to
+  // reach it at all — so force always-on-top while ghosted, regardless of
+  // the pin preference, and restore that preference when ghost turns off.
+  if (typeof ghost === 'boolean' && record) {
+    const win = noteWindows.get(id);
+    if (win && !win.isDestroyed()) {
+      platform.setPinned(win, ghost ? true : record.pinned !== false);
+    }
+  }
+
+  manager.notifyChanged();
 });
+
+ipcMain.on('note:setIgnoreMouse', (e, { id, ignore }) => {
+  const win = noteWindows.get(id);
+  if (win && !win.isDestroyed()) win.setIgnoreMouseEvents(!!ignore, { forward: true });
+});
+
+ipcMain.on('note:setPinned', (e, { id, pinned }) => {
+  if (typeof id !== 'string') return;
+  const win = noteWindows.get(id);
+  if (win && !win.isDestroyed()) platform.setPinned(win, !!pinned);
+  store.update(id, { pinned: !!pinned });
+  manager.notifyChanged();
+});
+
+ipcMain.handle('note:getState', (e, id) => store.get(id));
+
+ipcMain.on('note:close', (e, id) => hideNote(id));
 
 ipcMain.on('note:new', () => createNoteNearCursor());
 
 // ---------- Tray ----------
 function buildTrayIcon() {
-  // A simple template icon drawn from a data URL (small note glyph).
-  const img = nativeImage.createFromDataURL(
-    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABYAAAAWCAYAAADEtGw7AAAAT0lEQVR4nGNgGAWjYBSMglEwCkbBKBgFo2AUjIJRMApGwSgYBaNgFIyCUTAKRsEoGAWjYBSMglEwCkbBKBgFo2AUjIJRMApGwSgYBaNgFAAAqvAB/6mL1w0AAAAASUVORK5CYII='
-  );
-  img.setTemplateImage(true);
-  return img;
+  // @2x file supplies the retina variant automatically (Electron/macOS
+  // convention: same base name + "@2x" in the same folder).
+  // This is a full-color logo (purple/white ghost), not a monochrome
+  // silhouette, so it must NOT be marked as a template image — macOS
+  // template mode discards color and uses alpha as a mask, which turns
+  // any non-monochrome glyph into a solid blob.
+  return nativeImage.createFromPath(path.join(__dirname, 'build', 'tray-icon.png'));
+}
+
+function noteLabel(record) {
+  const snippet = (record.title || record.text || '').replace(/\s+/g, ' ').trim().slice(0, 30);
+  return snippet || 'Untitled note';
+}
+
+// Stopgap until the full Notes Manager window (step 2) exists: lists every
+// saved record, open or hidden, so a hidden note is never actually stranded.
+function buildNotesSubmenu() {
+  const records = store.all();
+  if (records.length === 0) return [{ label: 'No notes yet', enabled: false }];
+  return records.map((record) => ({
+    label: `${record.visible ? '●' : '○'} ${noteLabel(record)}`,
+    click: () => (record.visible ? hideNote(record.id) : showNote(record.id))
+  }));
 }
 
 function updateTrayMenu() {
   if (!tray) return;
+  const caveat = platform.captureExclusionCaveat();
   const menu = Menu.buildFromTemplate([
     { label: 'New Note', accelerator: 'CmdOrCtrl+Shift+N', click: () => createNoteNearCursor() },
-    {
-      label: notesHidden ? 'Show All Notes' : 'Hide All Notes',
-      accelerator: 'CmdOrCtrl+Shift+H',
-      click: () => toggleHideAll()
-    },
-    {
-      label: 'Toggle Click-Through (all)',
-      accelerator: 'CmdOrCtrl+Shift+G',
-      click: () => toggleGhostAll()
-    },
+    { label: 'Notes Manager…', accelerator: 'CmdOrCtrl+Shift+M', click: () => manager.openManagerWindow() },
+    { label: 'Notes', submenu: buildNotesSubmenu() },
+    { label: 'Hide/Show All', accelerator: 'CmdOrCtrl+Shift+H', click: () => toggleHideAll() },
+    { label: 'Toggle Click-Through (all)', accelerator: 'CmdOrCtrl+Shift+G', click: () => toggleGhostAll() },
     { type: 'separator' },
     { label: 'Notes are invisible to screen sharing ✓', enabled: false },
+    ...(caveat ? [{ label: caveat, enabled: false }] : []),
     { type: 'separator' },
-    { label: 'Quit Invisible Notes', accelerator: 'CmdOrCtrl+Q', click: () => app.quit() }
+    {
+      label: `About Ghost Notes (v${app.getVersion()})`,
+      click: () => {
+        dialog.showMessageBox({
+          type: 'info',
+          title: 'About Ghost Notes',
+          message: 'Ghost Notes',
+          detail: `Version ${app.getVersion()}\nPrivate, local sticky notes invisible to screen sharing.`
+        });
+      }
+    },
+    { type: 'separator' },
+    { label: 'Quit Ghost Notes', accelerator: 'CmdOrCtrl+Q', click: () => app.quit() }
   ]);
   tray.setContextMenu(menu);
 }
 
 function setupTray() {
   tray = new Tray(buildTrayIcon());
-  tray.setToolTip('Invisible Notes');
+  tray.setToolTip('Ghost Notes');
   updateTrayMenu();
   tray.on('click', () => tray.popUpContextMenu());
 }
 
 // ---------- App lifecycle ----------
-app.whenReady().then(() => {
-  // Hide from the Dock — this is a background utility.
-  if (app.dock) app.dock.hide();
+// Single instance: prevent a second launch from spawning duplicate note
+// windows on top of the same store file.
+const gotLock = app.requestSingleInstanceLock();
+if (!gotLock) {
+  app.quit();
+} else {
+  app.on('second-instance', () => {
+    if (tray) tray.popUpContextMenu();
+  });
 
-  setupTray();
+  app.whenReady().then(() => {
+    platform.hideDockIconIfMac(app);
+    setupTray();
 
-  const data = loadNotes();
-  if (data.notes.length === 0) {
-    createNoteNearCursor();
-  } else {
-    for (const note of data.notes) createNoteWindow(note);
-  }
+    const records = store.all();
+    if (records.length === 0) {
+      createNoteNearCursor();
+    } else {
+      for (const record of records) {
+        if (record.visible) openNoteWindow(record);
+      }
+    }
 
-  globalShortcut.register('CommandOrControl+Shift+N', () => createNoteNearCursor());
-  globalShortcut.register('CommandOrControl+Shift+H', () => toggleHideAll());
-  globalShortcut.register('CommandOrControl+Shift+G', () => toggleGhostAll());
-});
+    registerShortcuts({
+      newNote: () => createNoteNearCursor(),
+      toggleHideAll: () => toggleHideAll(),
+      toggleGhostAll: () => toggleGhostAll(),
+      openManager: () => manager.openManagerWindow()
+    });
 
-app.on('will-quit', () => {
-  globalShortcut.unregisterAll();
-});
+    screen.on('display-added', reconcileOpenWindowsToDisplays);
+    screen.on('display-removed', reconcileOpenWindowsToDisplays);
+    screen.on('display-metrics-changed', reconcileOpenWindowsToDisplays);
 
-// Keep running with no visible windows (tray app).
-app.on('window-all-closed', (e) => {
-  // Do not quit; user manages lifecycle via tray.
-});
+    // Waking from sleep can silently change the connected-display set before
+    // the OS fires its own display events — re-check note positions either way.
+    powerMonitor.on('resume', reconcileOpenWindowsToDisplays);
+    powerMonitor.on('unlock-screen', reconcileOpenWindowsToDisplays);
+  });
+
+  app.on('before-quit', () => {
+    store.flush();
+  });
+
+  app.on('will-quit', () => {
+    unregisterAll();
+  });
+
+  // Keep running with no visible windows (tray app).
+  app.on('window-all-closed', () => {});
+}

@@ -57,12 +57,48 @@
   body.dark .note.ghost { outline-color: rgba(255,255,255,0.35); }
   body.dark .note.ghost #ghost { background: rgba(255,255,255,0.22); color: #fff; }
 
-  .swatches { display: flex; gap: 5px; -webkit-app-region: no-drag; }
+  /* Pinned (default) = always-on-top. Unpinned = normal window, dim the
+     pin icon so its state is obvious at a glance. */
+  #pin { opacity: 0.4; }
+  #pin.active { opacity: 1; background: rgba(0,0,0,0.12); }
+  body.dark #pin.active { background: rgba(255,255,255,0.18); }
+
+  .color-control { position: relative; -webkit-app-region: no-drag; }
+  .color-dot {
+    display: block;
+    width: 14px; height: 14px; border-radius: 50%;
+    background: rgb(var(--tint));
+    border: 1px solid rgba(0,0,0,0.2);
+  }
+
+  .color-popover {
+    position: absolute;
+    top: 26px; left: 0;
+    padding: 8px;
+    border-radius: 9px;
+    background: rgba(250, 250, 252, 0.98);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.22);
+    -webkit-app-region: no-drag;
+    opacity: 0;
+    transform: translateY(-4px);
+    pointer-events: none;
+    transition: opacity 0.12s ease, transform 0.12s ease;
+    z-index: 20;
+  }
+  .color-popover.open { opacity: 1; transform: translateY(0); pointer-events: auto; }
+  body.dark .color-popover { background: rgba(46, 48, 54, 0.98); }
+
+  .swatches {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+
   .swatch {
-    width: 13px; height: 13px; border-radius: 50%;
+    width: 16px; height: 16px; border-radius: 50%;
     cursor: pointer; border: 1px solid rgba(0,0,0,0.15);
   }
-  .swatch.active { box-shadow: 0 0 0 2px rgba(0,0,0,0.35); }
+  .swatch.active { box-shadow: 0 0 0 2px rgba(0,0,0,0.4); }
 
   .spacer { flex: 1; }
 
@@ -114,11 +150,17 @@
 <body>
   <div class="note">
     <div class="bar">
-      <div class="swatches" id="swatches"></div>
+      <div class="color-control">
+        <button class="btn" id="colorBtn" title="Note color"><span class="color-dot" id="colorDot"></span></button>
+        <div class="color-popover" id="colorPopover">
+          <div class="swatches" id="swatches"></div>
+        </div>
+      </div>
       <input type="range" id="opacity" min="30" max="100" title="Opacity" />
       <div class="spacer"></div>
       <button class="btn" id="fontDown" title="Smaller text">A−</button>
       <button class="btn" id="fontUp" title="Larger text">A+</button>
+      <button class="btn" id="pin" title="Pinned: stays on top when you switch apps">📌</button>
       <button class="btn" id="ghost" title="Click-through: see & click behind (⌘⇧G)">👻</button>
       <button class="btn" id="new" title="New note">＋</button>
       <button class="btn" id="close" title="Close note">✕</button>
