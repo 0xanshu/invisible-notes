@@ -38,6 +38,11 @@ jobs:
         run: npx electron-builder --mac --universal --publish always
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Without this, electron-builder auto-discovers any ambient identity
+          # in the runner's default keychain and tries to sign with it, which
+          # fails when there's no matching password. Explicit CSC_LINK below
+          # still works fine with auto-discovery off.
+          CSC_IDENTITY_AUTO_DISCOVERY: false
           CSC_LINK: ${{ secrets.MAC_CSC_LINK }}
           CSC_KEY_PASSWORD: ${{ secrets.MAC_CSC_KEY_PASSWORD }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
