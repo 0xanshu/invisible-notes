@@ -1,4 +1,4 @@
-# Ghost Notes
+# Ghost Notes (macOS Ready, Windows - IN Progress)
 
 ![Downloads](https://img.shields.io/github/downloads/navyabijoy/invisible-notes/total)
 
