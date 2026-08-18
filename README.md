@@ -1,5 +1,7 @@
 # Ghost Notes
 
+![Downloads](https://img.shields.io/github/downloads/navyabijoy/invisible-notes/total)
+
 Translucent sticky notes that float on top of everything but stay **invisible to screen sharing and recording** (Zoom, Google Meet, Microsoft Teams, QuickTime, OBS, native screen recording).
 
 Perfect for demoing a take-home assignment or giving a code walkthrough while sharing your screen — keep your talking points on-screen with natural eye contact, and nobody watching the recording sees them.
