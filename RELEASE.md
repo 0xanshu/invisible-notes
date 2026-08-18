@@ -21,7 +21,7 @@ This is a real limitation, not a bug — fix it by adding the secrets below.
    - `APPLE_APP_SPECIFIC_PASSWORD` — an [app-specific password](https://support.apple.com/en-us/102654) for that Apple ID
    - `APPLE_TEAM_ID` — your Apple Developer Team ID
 
-electron-builder auto-signs and auto-notarizes when these are present (`build/entitlements.mac.plist` and `hardenedRuntime: true` are already configured in `package.json`) — no workflow changes needed beyond adding the secrets.
+electron-builder auto-signs and auto-notarizes when these are present (`build/entitlements.mac.plist` and `hardenedRuntime: true` are already configured in `package.json`) — but you must also **remove `"identity": null` from `package.json`'s `build.mac` block first**. It's there to force-skip signing on CI runners, which otherwise pick up a stray ambient keychain identity and fail the build with no password to use. Leaving it in place after adding real certs will keep builds unsigned.
 
 ## To sign Windows builds
 
