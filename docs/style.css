@@ -1915,4 +1915,13 @@ body.os-win #dlAlt .dl-icon-mac { display: inline-flex; }
 }
 .install-proceed:active {
   transform: translateY(0);
+  background: var(--accent-hover);
+}
+.install-proceed:focus {
+  outline: none;
+  background: var(--accent);
+}
+.install-proceed:focus-visible {
+  outline: 3px solid rgba(99, 87, 220, 0.4);
+  outline-offset: 2px;
 }
