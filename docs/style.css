@@ -1668,5 +1668,251 @@ kbd {
   .privacy-right { grid-template-columns: 1fr; }
   .callout-panel { padding: 40px 24px; }
   .footer-panel { padding: 40px 24px 0; }
+
+  .install-modal { margin: 16px; padding: 28px 20px; max-height: 90vh; overflow-y: auto; }
 }
 
+/* ═══ OS-AWARE DOWNLOAD ICONS ═══════════════════════════════════ */
+/* Default: show Mac icons, hide Windows icons */
+.dl-icon-win { display: none; }
+.dl-icon-mac { display: inline-flex; }
+
+/* When JS detects Windows, body gets .os-win → swap */
+body.os-win .dl-icon-win { display: inline-flex; }
+body.os-win .dl-icon-mac { display: none; }
+
+/* On the secondary (alt) button, flip the logic:
+   show the OTHER platform icon */
+#dlAlt .dl-icon-win { display: inline-flex; }
+#dlAlt .dl-icon-mac { display: none; }
+body.os-win #dlAlt .dl-icon-win { display: none; }
+body.os-win #dlAlt .dl-icon-mac { display: inline-flex; }
+
+
+/* ═══ INSTALL HELP MODAL ════════════════════════════════════════ */
+.install-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  animation: modalFadeIn 0.2s ease;
+}
+.install-modal-backdrop[hidden] { display: none; }
+
+@keyframes modalFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.install-modal {
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.24);
+  max-width: 520px;
+  width: 100%;
+  padding: 36px 32px;
+  animation: modalSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes modalSlideUp {
+  from { opacity: 0; transform: translateY(16px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.install-modal-close {
+  position: absolute;
+  top: 16px; right: 16px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--muted);
+  padding: 4px;
+  border-radius: 6px;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.install-modal-close:hover {
+  background: var(--border);
+  color: var(--ink);
+}
+
+.install-modal-header {
+  text-align: center;
+  margin-bottom: 24px;
+}
+.install-modal-header img {
+  margin-bottom: 12px;
+}
+.install-modal-header h3 {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 8px;
+}
+.install-modal-header p {
+  font-size: 14px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+/* Tabs — show one at a time, JS toggles display */
+.install-tab {
+  display: none;
+  margin-bottom: 24px;
+}
+.install-tab.active { display: block; }
+
+.install-tab-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-2);
+  background: var(--bg-2);
+  padding: 5px 12px;
+  border-radius: 20px;
+  margin-bottom: 16px;
+}
+
+.install-steps {
+  font-size: 14px;
+  color: var(--ink-2);
+  line-height: 1.7;
+  padding-left: 20px;
+  margin-bottom: 16px;
+}
+.install-steps li { margin-bottom: 4px; }
+.install-steps strong { color: var(--ink); font-weight: 600; }
+.install-steps em { font-style: italic; color: var(--muted); }
+
+/* SmartScreen visual mock */
+.install-visual { margin-top: 12px; }
+
+.smartscreen-mock {
+  background: #1a1d23;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 20px;
+  text-align: center;
+}
+
+.smartscreen-icon {
+  margin-bottom: 12px;
+}
+
+.smartscreen-text {
+  margin-bottom: 14px;
+}
+.smartscreen-text strong {
+  display: block;
+  color: #f8f8f8;
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.smartscreen-text span {
+  font-size: 12.5px;
+  color: rgba(255, 255, 255, 0.55);
+  line-height: 1.5;
+}
+
+.smartscreen-link {
+  font-size: 12.5px;
+  color: #60a5fa;
+  text-decoration: underline;
+  margin-bottom: 12px;
+  cursor: default;
+}
+
+.smartscreen-btn {
+  display: inline-block;
+  background: #3b82f6;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 7px 24px;
+  border-radius: 6px;
+  cursor: default;
+}
+
+/* macOS terminal code block */
+.install-code {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #1a1d23;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 12px 16px;
+  margin-bottom: 12px;
+  overflow-x: auto;
+}
+
+.install-code code {
+  flex: 1;
+  font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+  font-size: 13px;
+  color: #e2e8f0;
+  white-space: nowrap;
+}
+
+.install-copy {
+  flex-shrink: 0;
+  background: none;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  padding: 6px;
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.5);
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+.install-copy:hover {
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.06);
+}
+.install-copy.copied {
+  color: #4ade80;
+  border-color: rgba(74, 222, 128, 0.3);
+}
+
+.install-hint {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.install-modal-footer {
+  text-align: center;
+}
+
+.install-proceed {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  padding: 12px 32px;
+  border: none;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.15s ease;
+  width: 100%;
+}
+.install-proceed:hover {
+  background: var(--accent-hover);
+  transform: translateY(-1px);
+}
+.install-proceed:active {
+  transform: translateY(0);
+}

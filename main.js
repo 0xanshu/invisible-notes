@@ -2,7 +2,7 @@ const { app, ipcMain, screen, Tray, Menu, nativeImage, dialog, powerMonitor } = 
 const path = require('path');
 const { NoteStore } = require('./store');
 const platform = require('./platform');
-const { createNoteWindow } = require('./noteWindow');
+const { createNoteWindow, applyContentProtection } = require('./noteWindow');
 const { clampToVisibleDisplay, displayIdForPoint } = require('./displayUtils');
 const { registerShortcuts, unregisterAll } = require('./shortcuts');
 const { createManagerModule } = require('./manager');
@@ -66,6 +66,9 @@ function showNote(id) {
   const existing = noteWindows.get(id);
   if (existing && !existing.isDestroyed()) {
     existing.showInactive();
+    // Re-apply capture exclusion: some Electron versions on Windows clear the
+    // SetWindowDisplayAffinity flag when a window is hidden via win.hide().
+    applyContentProtection(existing);
   } else {
     const record = store.get(id);
     if (!record) return;

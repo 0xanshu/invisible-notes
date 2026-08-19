@@ -31,6 +31,9 @@
   const ua    = navigator.userAgent;
   const isWin = /Windows/i.test(ua);
 
+  // Add OS class to body for CSS-driven icon visibility
+  if (isWin) document.body.classList.add('os-win');
+
   const state = {
     mac: { label: 'Download for Mac',     url: cfg.RELEASES_URL },
     win: { label: 'Download for Windows', url: cfg.RELEASES_URL },
@@ -44,22 +47,34 @@
     return null;
   }
 
-  function applyDownloads() {
-    const primary = isWin ? state.win : state.mac;
+  // Pending download URL — set when modal opens, used when user clicks "proceed"
+  let pendingDownloadUrl = null;
+  let pendingDownloadOS  = null; // 'mac' | 'win'
 
-    // All buttons that show the OS-specific label
+  function applyDownloads() {
+    const primary   = isWin ? state.win : state.mac;
+    const secondary = isWin ? state.mac : state.win;
+
+    // Hero primary button — shows detected OS
     ['heroDownload', 'calloutDownload'].forEach((id) => {
       const el = document.getElementById(id);
       if (!el) return;
-      el.href = primary.url;
+      el.href = '#';
+      el.dataset.dlUrl = primary.url;
+      el.dataset.dlOs  = isWin ? 'win' : 'mac';
       const lbl = el.querySelector('.dl-label');
       if (lbl) lbl.textContent = primary.label;
-      else el.textContent = primary.label;
     });
 
-    // Explicit platform buttons
-    set('dlMac', state.mac.url);
-    set('dlWin', state.win.url);
+    // Hero secondary button — shows the OTHER OS
+    const alt = document.getElementById('dlAlt');
+    if (alt) {
+      alt.href = '#';
+      alt.dataset.dlUrl = secondary.url;
+      alt.dataset.dlOs  = isWin ? 'mac' : 'win';
+      const lbl = alt.querySelector('.dl-label');
+      if (lbl) lbl.textContent = secondary.label;
+    }
   }
 
   applyDownloads();
@@ -76,6 +91,76 @@
       applyDownloads();
     })
     .catch(() => { /* keep releases-page fallback */ });
+
+  // ─── Install-help modal ───────────────────────────────────────
+  const modal    = document.getElementById('installModal');
+  const tabWin   = document.getElementById('installTabWin');
+  const tabMac   = document.getElementById('installTabMac');
+  const closeBtn = document.getElementById('installModalClose');
+  const proceedBtn = document.getElementById('installProceed');
+  const copyBtn  = document.getElementById('copyMacCmd');
+  const macCmd   = document.getElementById('macCommand');
+
+  function showModal(dlUrl, dlOs) {
+    pendingDownloadUrl = dlUrl;
+    pendingDownloadOS  = dlOs;
+    // Show the correct tab
+    if (tabWin) tabWin.classList.toggle('active', dlOs === 'win');
+    if (tabMac) tabMac.classList.toggle('active', dlOs === 'mac');
+    if (modal) modal.hidden = false;
+  }
+
+  function hideModal() {
+    if (modal) modal.hidden = true;
+    pendingDownloadUrl = null;
+    pendingDownloadOS  = null;
+  }
+
+  // Intercept download clicks → show modal instead of downloading directly
+  document.addEventListener('click', (e) => {
+    const link = e.target.closest('[data-dl-url]');
+    if (!link) return;
+    e.preventDefault();
+    showModal(link.dataset.dlUrl, link.dataset.dlOs);
+  });
+
+  // Footer download link
+  const footDl = document.getElementById('footDownload');
+  if (footDl) {
+    footDl.href = '#';
+    footDl.addEventListener('click', (e) => {
+      e.preventDefault();
+      const os = isWin ? 'win' : 'mac';
+      showModal(isWin ? state.win.url : state.mac.url, os);
+    });
+  }
+
+  // Modal close
+  if (closeBtn) closeBtn.addEventListener('click', hideModal);
+  if (modal) modal.addEventListener('click', (e) => {
+    if (e.target === modal) hideModal();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && modal && !modal.hidden) hideModal();
+  });
+
+  // "Got it — download now" button
+  if (proceedBtn) proceedBtn.addEventListener('click', () => {
+    if (pendingDownloadUrl) {
+      window.location.href = pendingDownloadUrl;
+    }
+    hideModal();
+  });
+
+  // Copy macOS command
+  if (copyBtn && macCmd) {
+    copyBtn.addEventListener('click', () => {
+      navigator.clipboard.writeText(macCmd.textContent).then(() => {
+        copyBtn.classList.add('copied');
+        setTimeout(() => copyBtn.classList.remove('copied'), 1500);
+      });
+    });
+  }
 
   // ─── Mobile nav toggle ─────────────────────────────────────────
   const toggle    = document.getElementById('navToggle');

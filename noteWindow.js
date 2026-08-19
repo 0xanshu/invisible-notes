@@ -7,6 +7,16 @@ const { BrowserWindow } = require('electron');
 const platform = require('./platform');
 const { clampToVisibleDisplay } = require('./displayUtils');
 
+// Apply (or re-apply) screen-capture exclusion on a window.
+// On Windows, some Electron versions clear the SetWindowDisplayAffinity flag
+// when the window is hidden via win.hide(). This helper is called:
+//   1. At window creation (inside 'ready-to-show', so the HWND fully exists)
+//   2. Every time a hidden note is shown again (see main.js showNote)
+function applyContentProtection(win) {
+  if (!win || win.isDestroyed()) return;
+  win.setContentProtection(true);
+}
+
 function createNoteWindow(record, { onMoved, onResized, onClosed } = {}) {
   const bounds = clampToVisibleDisplay(record);
 
@@ -31,16 +41,17 @@ function createNoteWindow(record, { onMoved, onResized, onClosed } = {}) {
     }
   });
 
-  // Exclude this window from screen capture / sharing / recording.
-  // See platform.captureExclusionCaveat() for the Windows-version caveat.
-  win.setContentProtection(true);
   platform.setPinned(win, record.pinned !== false);
 
   win.loadFile('note.html', { query: { id: record.id } });
 
-  if (record.visible !== false) {
-    win.once('ready-to-show', () => win.showInactive());
-  }
+  // Defer content-protection and show until 'ready-to-show' so the native
+  // window handle (HWND on Windows) is fully realized. Calling
+  // setContentProtection before the handle exists silently fails on Windows.
+  win.once('ready-to-show', () => {
+    applyContentProtection(win);
+    if (record.visible !== false) win.showInactive();
+  });
 
   if (onMoved) win.on('moved', () => onMoved(win));
   if (onResized) win.on('resized', () => onResized(win));
@@ -49,4 +60,4 @@ function createNoteWindow(record, { onMoved, onResized, onClosed } = {}) {
   return win;
 }
 
-module.exports = { createNoteWindow };
+module.exports = { createNoteWindow, applyContentProtection };
