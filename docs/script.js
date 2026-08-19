@@ -146,10 +146,8 @@
 
   // "Got it — download now" button
   if (proceedBtn) proceedBtn.addEventListener('click', () => {
-    if (pendingDownloadUrl) {
-      window.location.href = pendingDownloadUrl;
-    }
-    hideModal();
+    if (pendingDownloadUrl) window.open(pendingDownloadUrl, '_blank');
+    setTimeout(hideModal, 400);
   });
 
   // Copy macOS command
