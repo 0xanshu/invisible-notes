@@ -22,7 +22,7 @@ If you have a new idea or found a bug that isn't already filed, **open a new iss
 2. **Comment** — leave a comment on the issue saying you'd like to work on it (e.g., *"I'd like to take this one"*). Wait for a maintainer to assign it to you.
 3. **Fork & branch** — fork the repo and create a branch named after the issue: `feat/issue-3-custom-shortcuts` or `fix/issue-2-windows-protection`.
 4. **Build & test** — make your changes locally, run the app, and make sure nothing is broken.
-5. **Open a PR** — submit a pull request against `main` and fill out the PR template. Reference the issue in your description (e.g., `Closes #3`).
+5. **Open a PR** — submit a pull request against `develop` and fill out the PR template. Reference the issue in your description (e.g., `Closes #3`).
 6. **Review** — a maintainer will review your PR. Address any feedback and the PR will be merged once it's approved.
 
 ---
