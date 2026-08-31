@@ -57,12 +57,56 @@ npm run dist:win   # Windows
 
 ## Commit Messages
 
-Use short, descriptive commit messages in the imperative mood:
+This project follows the [Conventional Commits v1.0.0](https://www.conventionalcommits.org/en/v1.0.0/) specification.
 
-- ✅ `Add monospace font toggle to note toolbar`
-- ✅ `Fix content protection not re-applied after sleep on Windows`
+### Format
+
+```
+<type>(<scope>): <short description>
+
+[optional body]
+
+[optional footer(s)]
+```
+
+### Types
+
+| Type | When to use |
+|------|-------------|
+| `feat` | A new feature |
+| `fix` | A bug fix |
+| `docs` | Documentation changes only |
+| `style` | Formatting, whitespace — no logic change |
+| `refactor` | Code restructure with no feature or fix |
+| `perf` | Performance improvements |
+| `test` | Adding or updating tests |
+| `chore` | Build process, dependencies, tooling |
+
+### Scopes (optional but encouraged)
+
+Use the filename or area of the app being changed:
+
+- `main`, `note`, `manager`, `platform`, `store`, `shortcuts`, `preload`
+- `docs`, `build`, `deps`
+
+### Examples
+
+- ✅ `feat(note): add monospace font toggle to toolbar`
+- ✅ `fix(platform): re-apply content protection after sleep on Windows`
+- ✅ `docs: update contributing guide with conventional commits`
+- ✅ `chore(deps): bump electron to v30`
 - ❌ `fixed stuff`
 - ❌ `WIP`
+
+### Breaking Changes
+
+Append `!` after the type/scope and add a `BREAKING CHANGE:` footer:
+
+```
+feat(store)!: change note storage format to JSON
+
+BREAKING CHANGE: existing notes in the old format will not be loaded automatically.
+```
 
 ---
 
