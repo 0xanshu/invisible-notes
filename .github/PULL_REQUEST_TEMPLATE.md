@@ -35,7 +35,7 @@ Closes #<!-- issue number -->
 ## Checklist
 
 - [ ] I commented on the issue and was assigned before starting work
-- [ ] My branch is up to date with `main`
+- [ ] My branch is up to date with `develop`
 - [ ] My changes are focused — this PR does one thing
 - [ ] I have not introduced any `console.log` statements I didn't intend to keep
 - [ ] Platform-specific logic (if any) is isolated inside `platform.js`
