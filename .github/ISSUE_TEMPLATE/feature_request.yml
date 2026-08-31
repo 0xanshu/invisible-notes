@@ -1,0 +1,55 @@
+name: "✨ Feature Request"
+description: "Propose a new feature or enhancement."
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting an improvement to Ghost Notes! Please describe your idea clearly.
+        
+        > **Note:** If you'd like to implement this yourself, please wait for a maintainer to respond and assign the issue to you before writing any code.
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Before submitting
+      options:
+        - label: I have searched the existing issues and this feature has not been requested before.
+          required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: Describe the use case or problem you're running into.
+      placeholder: "e.g. I often work on multiple presentations and wish I could hide all notes for Presentation A when switching to Presentation B..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      description: Describe the feature you'd like to see. Be as specific as possible.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Have you tried any workarounds? Are there other approaches that could solve this?
+
+  - type: checkboxes
+    id: implement
+    attributes:
+      label: Would you like to implement this?
+      options:
+        - label: "Yes — I'd like to work on this. Please assign it to me."
+        - label: "No — I'm just suggesting it."
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional context
+      description: Mockups, references to similar apps, or any other relevant information.

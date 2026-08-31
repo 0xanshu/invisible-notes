@@ -1,0 +1,74 @@
+name: "🐛 Bug Report"
+description: "Report something that is broken or not working as expected."
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug! Please fill out the form below as thoroughly as possible.
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Before submitting
+      options:
+        - label: I have searched the existing issues and this bug has not been reported before.
+          required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Describe the bug
+      description: A clear and concise description of what the bug is.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Step-by-step instructions to reproduce the issue.
+      placeholder: |
+        1. Open the app
+        2. Create a new note
+        3. ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What did you expect to happen?
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: What actually happened?
+    validations:
+      required: true
+
+  - type: input
+    id: os
+    attributes:
+      label: Operating System
+      placeholder: "e.g. macOS 14.5, Windows 11 (build 22631)"
+    validations:
+      required: true
+
+  - type: input
+    id: app-version
+    attributes:
+      label: Ghost Notes version
+      placeholder: "e.g. 1.2.0 (find it in the tray menu → About)"
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional context
+      description: Screenshots, recordings, or any other relevant information.

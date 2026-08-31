@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 💬 Start a Discussion
+    url: https://github.com/navyabijoy/invisible-notes/discussions
+    about: Have a question or want to share ideas? Start a discussion instead of opening an issue.
