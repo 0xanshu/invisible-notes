@@ -7,6 +7,7 @@
     --tint: 255, 224, 130;   /* default: yellow */
     --opacity: 0.85;
     --font-size: 15px;
+    --mono-font: ui-monospace, "SF Mono", "Fira Code", Consolas, "Cascadia Code", monospace;
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -62,6 +63,11 @@
   #pin { opacity: 0.4; }
   #pin.active { opacity: 1; background: rgba(0,0,0,0.12); }
   body.dark #pin.active { background: rgba(255,255,255,0.18); }
+
+  /* Monospace toggle: dim when off so the on-state matches pin. */
+  #mono { opacity: 0.4; font-family: var(--mono-font); font-size: 13px; }
+  #mono.active { opacity: 1; background: rgba(0,0,0,0.12); }
+  body.dark #mono.active { background: rgba(255,255,255,0.18); }
 
   .color-control { position: relative; -webkit-app-region: no-drag; }
   .color-dot {
@@ -137,6 +143,9 @@
     user-select: text;
     font-family: inherit;
   }
+  .note.mono textarea {
+    font-family: var(--mono-font);
+  }
   textarea::placeholder { color: rgba(0,0,0,0.35); }
 
   /* Dark theme readability */
@@ -160,6 +169,7 @@
       <div class="spacer"></div>
       <button class="btn" id="fontDown" title="Smaller text">A−</button>
       <button class="btn" id="fontUp" title="Larger text">A+</button>
+      <button class="btn" id="mono" title="Monospace: better for code snippets">{}</button>
       <button class="btn" id="pin" title="Pinned: stays on top when you switch apps">📌</button>
       <button class="btn" id="ghost" title="Click-through: see & click behind (⌘⇧G)">👻</button>
       <button class="btn" id="new" title="New note">＋</button>
