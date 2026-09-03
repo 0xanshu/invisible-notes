@@ -4,7 +4,7 @@
 // touches the store directly — main.js stays the single source of truth.
 const path = require('path');
 const { app, BrowserWindow, ipcMain, dialog } = require('electron');
-const { registerShortcuts } = require('./shortcuts');
+const { registerShortcuts, getShortcuts } = require('./shortcuts');
 const { sanitizeWorkspaceName } = require('./store');
 
 const MAX_TITLE_LENGTH = 80;
@@ -34,10 +34,16 @@ function createManagerModule({ store, actions }) {
     }
   }
 
-  function openManagerWindow() {
+  // `showShortcuts` opens the window straight onto the shortcut legend — the
+  // tray's "Keyboard Shortcuts…" item. Also called as a plain click/shortcut
+  // handler, which passes an event object with no such property, so anything
+  // that isn't an explicit request just opens the note list as before.
+  function openManagerWindow(options = {}) {
+    const showShortcuts = !!options.showShortcuts;
     if (win && !win.isDestroyed()) {
       win.show();
       win.focus();
+      if (showShortcuts) win.webContents.send('manager:showShortcuts');
       return;
     }
     win = new BrowserWindow({
@@ -62,6 +68,11 @@ function createManagerModule({ store, actions }) {
     });
     win.loadFile('manager.html');
     win.once('ready-to-show', () => win.show());
+    // did-finish-load rather than ready-to-show: the renderer has to have run
+    // its scripts before it can be listening for this.
+    if (showShortcuts) {
+      win.webContents.once('did-finish-load', () => win.webContents.send('manager:showShortcuts'));
+    }
     win.on('closed', () => {
       win = null;
     });
@@ -69,6 +80,7 @@ function createManagerModule({ store, actions }) {
 
   ipcMain.handle('manager:list', () => snapshot());
   ipcMain.handle('manager:version', () => app.getVersion());
+  ipcMain.handle('manager:shortcuts', () => getShortcuts());
 
   // ---------- Workspaces (issue #8) ----------
   ipcMain.on('manager:setWorkspace', (e, id) => {

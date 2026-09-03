@@ -9,6 +9,9 @@ contextBridge.exposeInMainWorld('manager', {
   newNote: () => ipcRenderer.send('manager:new'),
   onChanged: (cb) => ipcRenderer.on('manager:notesChanged', (e, snapshot) => cb(snapshot)),
   version: () => ipcRenderer.invoke('manager:version'),
+  // Shortcut legend (issue #20)
+  shortcuts: () => ipcRenderer.invoke('manager:shortcuts'),
+  onShowShortcuts: (cb) => ipcRenderer.on('manager:showShortcuts', () => cb()),
   // Workspaces (issue #8)
   setWorkspace: (id) => ipcRenderer.send('manager:setWorkspace', id),
   createWorkspace: (name) => ipcRenderer.send('manager:createWorkspace', name),
