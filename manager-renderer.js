@@ -256,6 +256,35 @@ function applySnapshot(snapshot) {
   render();
 }
 
+document.getElementById('exportNotes').addEventListener('click', async () => {
+  const res = await window.manager.exportAll();
+  if (res && res.ok) flashStatus(`Exported ${res.count} note${plural(res.count)}`);
+});
+
+document.getElementById('importNotes').addEventListener('click', async () => {
+  const res = await window.manager.importNotes();
+  if (res && res.ok) {
+    const dupes = res.skipped ? `, skipped ${res.skipped} duplicate${plural(res.skipped)}` : '';
+    flashStatus(`Imported ${res.added} note${plural(res.added)}${dupes}`);
+  }
+});
+
+function plural(n) {
+  return n === 1 ? '' : 's';
+}
+
+// Brief, non-modal feedback in the footer; errors already surface as native
+// dialogs from the main process.
+let statusTimer = null;
+function flashStatus(text) {
+  const el = document.getElementById('status');
+  el.textContent = text;
+  if (statusTimer) clearTimeout(statusTimer);
+  statusTimer = setTimeout(() => {
+    el.textContent = '';
+  }, 4000);
+}
+
 window.manager.onChanged(applySnapshot);
 window.manager.list().then(applySnapshot);
 

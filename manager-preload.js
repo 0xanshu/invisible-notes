@@ -17,5 +17,7 @@ contextBridge.exposeInMainWorld('manager', {
   createWorkspace: (name) => ipcRenderer.send('manager:createWorkspace', name),
   renameWorkspace: (id, name) => ipcRenderer.send('manager:renameWorkspace', { id, name }),
   deleteWorkspace: (id) => ipcRenderer.send('manager:deleteWorkspace', id),
-  moveNote: (id, workspaceId) => ipcRenderer.send('manager:moveNote', { id, workspaceId })
+  moveNote: (id, workspaceId) => ipcRenderer.send('manager:moveNote', { id, workspaceId }),
+  exportAll: () => ipcRenderer.invoke('manager:export'),
+  importNotes: () => ipcRenderer.invoke('manager:import')
 });

@@ -187,6 +187,22 @@
     border-color: var(--accent);
     box-shadow: 0 0 0 3px rgba(91, 75, 255, 0.15);
   }
+  .btn-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    flex: 0 0 auto;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface);
+    color: var(--muted);
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, border-color 0.15s, transform 0.1s;
+  }
+  .btn-icon:hover { background: var(--surface-2); color: var(--ink); border-color: var(--border-2); }
+  .btn-icon:active { transform: scale(0.95); }
 
   /* ─── List ────────────────────────────────────────────── */
   .list {
@@ -299,6 +315,15 @@
   }
   .icon-btn:hover { background: var(--surface-2); color: var(--ink); }
   .icon-btn.danger:hover { background: #fdecec; color: #d3392e; }
+  /* Keyboard users need a visible focus indicator on the icon-only controls,
+     which have no text label to rely on. */
+  .btn-icon:focus-visible,
+  .icon-btn:focus-visible,
+  .move-wrap:focus-visible,
+  #workspaceSelect:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
   .actions-divider {
     width: 1px;
     height: 18px;
@@ -354,12 +379,15 @@
      options need one of their own to stay readable. */
   .move-select option { color: var(--ink); }
 
-  #version {
+  #footer {
     flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
     padding: 8px 12px;
     font-size: 11px;
     color: var(--muted-2);
-    text-align: center;
     border-top: 1px solid var(--border);
     background: var(--surface);
   }
@@ -455,6 +483,14 @@
     padding: 4px 8px;
     white-space: nowrap;
   }
+  #status {
+    color: var(--accent-dk);
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  #version { white-space: nowrap; }
 </style>
 </head>
 <body>
@@ -495,9 +531,15 @@
     <button class="icon-btn" id="shortcutsBtn" title="Keyboard shortcuts" aria-label="Keyboard shortcuts">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 015.8 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
     </button>
+    <button class="btn-icon" id="exportNotes" title="Export All Notes" aria-label="Export all notes to a backup file">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+    </button>
+    <button class="btn-icon" id="importNotes" title="Import Notes" aria-label="Import notes from a backup file">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+    </button>
   </div>
   <div class="list" id="list"></div>
-  <div id="version"></div>
+  <div id="footer"><span id="status"></span><span id="version"></span></div>
 
   <div class="sheet" id="shortcuts" hidden role="dialog" aria-modal="true" aria-labelledby="shortcutsTitle">
     <div class="sheet-head">
