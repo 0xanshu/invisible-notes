@@ -1,8 +1,8 @@
 // Persistence layer: versioned, atomic-write JSON store for note records.
 // A "record" is the durable note (id, content, position, visible flag) —
 // independent of whether a BrowserWindow currently exists for it.
-const fs = require("fs");
-const path = require("path");
+const fs = require('fs');
+const path = require('path');
 
 const STORE_VERSION = 6;
 
@@ -15,16 +15,16 @@ const STORE_VERSION = 6;
 // "Personal" should not be stuck with an unused "Default" forever. The
 // invariant that actually holds is that at least one workspace always exists,
 // so pickFallbackWorkspace() always has a destination.
-const DEFAULT_WORKSPACE_ID = "ws-default";
-const DEFAULT_WORKSPACE_NAME = "Default";
+const DEFAULT_WORKSPACE_ID = 'ws-default';
+const DEFAULT_WORKSPACE_NAME = 'Default';
 const MAX_WORKSPACE_NAME_LENGTH = 40;
 
 // Appearance preferences (Manager-only theming). Note bodies keep their
 // per-note color; theme/accent only restyle Manager chrome.
-const THEME_MODES = ["light", "dark", "system"];
-const DEFAULT_THEME = "system";
-const ACCENT_IDS = ["violet", "blue", "green", "orange", "pink"];
-const DEFAULT_ACCENT = "violet";
+const THEME_MODES = ['light', 'dark', 'system'];
+const DEFAULT_THEME = 'system';
+const ACCENT_IDS = ['violet', 'blue', 'green', 'orange', 'pink'];
+const DEFAULT_ACCENT = 'violet';
 
 function sanitizeTheme(input) {
   return THEME_MODES.includes(input) ? input : DEFAULT_THEME;
@@ -35,31 +35,18 @@ function sanitizeAccent(input) {
 }
 
 function nextId() {
-  return (
-    "note-" +
-    Date.now().toString(36) +
-    "-" +
-    Math.random().toString(36).slice(2, 6)
-  );
+  return 'note-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 6);
 }
 
 function nextWorkspaceId() {
-  return (
-    "ws-" +
-    Date.now().toString(36) +
-    "-" +
-    Math.random().toString(36).slice(2, 6)
-  );
+  return 'ws-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 6);
 }
 
 // Workspace names are shown in a tray menu, where a newline or an
 // over-long string would break the layout, so normalize at the boundary.
 function sanitizeWorkspaceName(input) {
-  if (typeof input !== "string") return "";
-  return input
-    .replace(/[\r\n]+/g, " ")
-    .trim()
-    .slice(0, MAX_WORKSPACE_NAME_LENGTH);
+  if (typeof input !== 'string') return '';
+  return input.replace(/[\r\n]+/g, ' ').trim().slice(0, MAX_WORKSPACE_NAME_LENGTH);
 }
 
 function defaultWorkspace(overrides = {}) {
@@ -67,11 +54,11 @@ function defaultWorkspace(overrides = {}) {
   // replaced rather than stored. Notes still pointing at the old value are
   // reattached by normalizeWorkspaces, which reassigns any workspaceId that
   // does not match a workspace that exists.
-  const id = typeof overrides.id === "string" ? overrides.id.trim() : "";
+  const id = typeof overrides.id === 'string' ? overrides.id.trim() : '';
   return {
     id: id || nextWorkspaceId(),
-    name: sanitizeWorkspaceName(overrides.name) || "Untitled workspace",
-    createdAt: overrides.createdAt || Date.now(),
+    name: sanitizeWorkspaceName(overrides.name) || 'Untitled workspace',
+    createdAt: overrides.createdAt || Date.now()
   };
 }
 
@@ -79,15 +66,15 @@ function defaultRecord(overrides = {}) {
   const now = overrides.createdAt || Date.now();
   return {
     id: overrides.id || nextId(),
-    title: overrides.title || "",
-    text: overrides.text || "",
-    color: overrides.color || "yellow",
+    title: overrides.title || '',
+    text: overrides.text || '',
+    color: overrides.color || 'yellow',
     x: overrides.x,
     y: overrides.y,
     width: overrides.width || 300,
     height: overrides.height || 220,
     displayId: overrides.displayId ?? null,
-    opacity: typeof overrides.opacity === "number" ? overrides.opacity : 0.85,
+    opacity: typeof overrides.opacity === 'number' ? overrides.opacity : 0.85,
     fontSize: overrides.fontSize || 15,
     // Per-note monospace toggle for code walkthroughs (issue #7).
     monospace: !!overrides.monospace,
@@ -100,7 +87,7 @@ function defaultRecord(overrides = {}) {
     // Unpinned = a normal window that can be covered by whatever's focused.
     pinned: overrides.pinned !== undefined ? !!overrides.pinned : true,
     createdAt: now,
-    updatedAt: overrides.updatedAt || now,
+    updatedAt: overrides.updatedAt || now
   };
 }
 
@@ -110,29 +97,24 @@ function defaultRecord(overrides = {}) {
 // than assuming it is "Default", which is wrong once that workspace has been
 // renamed or deleted. Returns null only for an empty list.
 function pickFallbackWorkspace(workspaces, excludeId) {
-  const remaining =
-    excludeId === undefined
-      ? workspaces
-      : workspaces.filter((w) => w.id !== excludeId);
-  return (
-    remaining.find((w) => w.id === DEFAULT_WORKSPACE_ID) || remaining[0] || null
-  );
+  const remaining = excludeId === undefined ? workspaces : workspaces.filter((w) => w.id !== excludeId);
+  return remaining.find((w) => w.id === DEFAULT_WORKSPACE_ID) || remaining[0] || null;
 }
 
 function emptyStore() {
   const workspace = defaultWorkspace({
     id: DEFAULT_WORKSPACE_ID,
-    name: DEFAULT_WORKSPACE_NAME,
+    name: DEFAULT_WORKSPACE_NAME
   });
   return {
     version: STORE_VERSION,
     settings: {
       activeWorkspace: workspace.id,
       theme: DEFAULT_THEME,
-      accent: DEFAULT_ACCENT,
+      accent: DEFAULT_ACCENT
     },
     workspaces: [workspace],
-    notes: [],
+    notes: []
   };
 }
 
@@ -155,7 +137,7 @@ function normalizeWorkspaces(data) {
   const seenIds = new Set();
   let workspaces = [];
   for (const entry of Array.isArray(data.workspaces) ? data.workspaces : []) {
-    if (!entry || typeof entry !== "object") continue;
+    if (!entry || typeof entry !== 'object') continue;
     const workspace = defaultWorkspace(entry);
     if (seenIds.has(workspace.id)) continue;
     seenIds.add(workspace.id);
@@ -163,12 +145,7 @@ function normalizeWorkspaces(data) {
   }
 
   if (workspaces.length === 0) {
-    workspaces = [
-      defaultWorkspace({
-        id: DEFAULT_WORKSPACE_ID,
-        name: DEFAULT_WORKSPACE_NAME,
-      }),
-    ];
+    workspaces = [defaultWorkspace({ id: DEFAULT_WORKSPACE_ID, name: DEFAULT_WORKSPACE_NAME })];
   }
 
   const ids = new Set(workspaces.map((w) => w.id));
@@ -176,7 +153,7 @@ function normalizeWorkspaces(data) {
 
   const notes = data.notes.map((n) => ({
     ...n,
-    workspaceId: ids.has(n.workspaceId) ? n.workspaceId : fallbackId,
+    workspaceId: ids.has(n.workspaceId) ? n.workspaceId : fallbackId
   }));
 
   const requested = data.settings?.activeWorkspace;
@@ -189,10 +166,10 @@ function normalizeWorkspaces(data) {
       ...data.settings,
       activeWorkspace: ids.has(requested) ? requested : fallbackId,
       theme: sanitizeTheme(data.settings?.theme),
-      accent: sanitizeAccent(data.settings?.accent),
+      accent: sanitizeAccent(data.settings?.accent)
     },
     workspaces,
-    notes,
+    notes
   };
 }
 
@@ -203,7 +180,7 @@ function normalizeWorkspaces(data) {
 // v5 is the `images` schema from #9, accepted here as a migration source too,
 // so this change and that one are independent of merge order.
 function migrate(data) {
-  if (!data || typeof data !== "object") return emptyStore();
+  if (!data || typeof data !== 'object') return emptyStore();
   if (!Array.isArray(data.notes)) return emptyStore();
 
   // Drop entries that are not objects before anything reads fields off them.
@@ -212,14 +189,12 @@ function migrate(data) {
   // dereferences each entry. Reading `n.monospace` off a null throws, and the
   // throw escapes _load's JSON.parse try block, so it would surface as a
   // crash on launch rather than the corrupt-file recovery path.
-  const sourceNotes = data.notes.filter((n) => n && typeof n === "object");
+  const sourceNotes = data.notes.filter((n) => n && typeof n === 'object');
 
   let notes;
   if (!data.version) {
     // v1 -> current: add visible/title/displayId/pinned/monospace/timestamps.
-    notes = sourceNotes.map((n) =>
-      defaultRecord({ ...n, visible: true, pinned: true }),
-    );
+    notes = sourceNotes.map((n) => defaultRecord({ ...n, visible: true, pinned: true }));
   } else if (data.version === 2) {
     // v2 -> current: backfill pinned:true so existing notes keep today's
     // always-on-top behavior unchanged. Monospace defaults to off unless
@@ -227,7 +202,7 @@ function migrate(data) {
     notes = sourceNotes.map((n) => ({
       ...n,
       pinned: n.pinned !== undefined ? !!n.pinned : true,
-      monospace: !!n.monospace,
+      monospace: !!n.monospace
     }));
   } else if (data.version === 3 || data.version === 4 || data.version === 5) {
     // v3 -> v4: existing notes stay proportional unless the user toggles {}.
@@ -251,22 +226,16 @@ function migrate(data) {
 // fields are dropped by defaultRecord(), and duplicate ids are skipped.
 // Returns null when the payload is not a notes file at all.
 function normalizeImport(data) {
-  if (!data || typeof data !== "object" || !Array.isArray(data.notes))
-    return null;
+  if (!data || typeof data !== 'object' || !Array.isArray(data.notes)) return null;
   // An empty array is intentionally importable (so "Replace" can clear notes),
   // but that means any random JSON with notes: [] would otherwise pass. Exports
   // always write the app marker and a numeric version, so require one of those
   // when there is nothing else to look at.
-  if (
-    data.notes.length === 0 &&
-    data.app !== "ghost-notes" &&
-    !Number.isFinite(data.version)
-  )
-    return null;
+  if (data.notes.length === 0 && data.app !== 'ghost-notes' && !Number.isFinite(data.version)) return null;
   const seen = new Set();
   const notes = [];
   for (const entry of migrate(data).notes) {
-    if (!entry || typeof entry !== "object" || Array.isArray(entry)) continue;
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) continue;
     // defaultRecord() uses overrides.createdAt || Date.now(), so a valid epoch
     // timestamp of 0 would be overwritten before the checks below run. Capture
     // the raw values and restore them when they are actually finite.
@@ -275,26 +244,19 @@ function normalizeImport(data) {
     const record = defaultRecord(entry);
     if (Number.isFinite(rawCreatedAt)) record.createdAt = rawCreatedAt;
     if (Number.isFinite(rawUpdatedAt)) record.updatedAt = rawUpdatedAt;
-    if (typeof record.id !== "string" || !record.id) record.id = nextId();
+    if (typeof record.id !== 'string' || !record.id) record.id = nextId();
     if (seen.has(record.id)) continue;
     seen.add(record.id);
-    if (typeof record.title !== "string") record.title = "";
-    if (typeof record.text !== "string") record.text = "";
-    if (typeof record.color !== "string") record.color = "yellow";
+    if (typeof record.title !== 'string') record.title = '';
+    if (typeof record.text !== 'string') record.text = '';
+    if (typeof record.color !== 'string') record.color = 'yellow';
     // typeof alone lets NaN/Infinity through; only finite numbers are valid
     // for sizes, positions and timestamps. width/height/opacity also get
     // bounds so a bad backup can't produce an unusable window.
-    if (
-      !Number.isFinite(record.opacity) ||
-      record.opacity <= 0 ||
-      record.opacity > 1
-    )
-      record.opacity = 0.85;
+    if (!Number.isFinite(record.opacity) || record.opacity <= 0 || record.opacity > 1) record.opacity = 0.85;
     if (!Number.isFinite(record.fontSize)) record.fontSize = 15;
-    if (!Number.isFinite(record.width) || record.width < 160)
-      record.width = 300;
-    if (!Number.isFinite(record.height) || record.height < 120)
-      record.height = 220;
+    if (!Number.isFinite(record.width) || record.width < 160) record.width = 300;
+    if (!Number.isFinite(record.height) || record.height < 120) record.height = 220;
     if (!Number.isFinite(record.x)) record.x = undefined;
     if (!Number.isFinite(record.y)) record.y = undefined;
     if (!Number.isFinite(record.createdAt)) record.createdAt = Date.now();
@@ -315,9 +277,9 @@ class NoteStore {
   // When omitted (e.g. OS-level encryption unavailable), notes are stored as
   // plaintext — matching the original behavior.
   constructor(userDataPath, { onCorrupted, onWriteError, codec } = {}) {
-    this.filePath = path.join(userDataPath, "notes.json");
-    this.tmpPath = this.filePath + ".tmp";
-    this.backupPath = this.filePath + ".corrupt";
+    this.filePath = path.join(userDataPath, 'notes.json');
+    this.tmpPath = this.filePath + '.tmp';
+    this.backupPath = this.filePath + '.corrupt';
     this.onCorrupted = onCorrupted;
     this.onWriteError = onWriteError;
     this.codec = codec || null;
@@ -361,7 +323,7 @@ class NoteStore {
     // 2) Legacy plaintext JSON (or an unreadable/corrupted file).
     let parsed = null;
     try {
-      parsed = JSON.parse(raw.toString("utf8"));
+      parsed = JSON.parse(raw.toString('utf8'));
     } catch (_) {
       return { data: this._corrupt(raw), migrated: false };
     }
@@ -373,10 +335,7 @@ class NoteStore {
       // About to run a schema migration — snapshot the pre-migration file
       // first so a bug in migrate() can never be the only copy of the data.
       try {
-        fs.writeFileSync(
-          this.filePath + `.pre-migration-v${(parsed && parsed.version) || 1}`,
-          raw,
-        );
+        fs.writeFileSync(this.filePath + `.pre-migration-v${(parsed && parsed.version) || 1}`, raw);
       } catch (_) {}
     }
     return migrate(parsed);
@@ -388,7 +347,7 @@ class NoteStore {
     try {
       fs.writeFileSync(this.backupPath, raw);
     } catch (_) {}
-    console.error("notes.json was corrupted, backed up to", this.backupPath);
+    console.error('notes.json was corrupted, backed up to', this.backupPath);
     if (this.onCorrupted) this.onCorrupted(this.backupPath);
     return emptyStore();
   }
@@ -399,13 +358,13 @@ class NoteStore {
       // safeStorage.encryptString returns a Buffer; write it as-is.
       out = this.codec.encrypt(JSON.stringify(this.data));
     } else {
-      out = Buffer.from(JSON.stringify(this.data, null, 2), "utf8");
+      out = Buffer.from(JSON.stringify(this.data, null, 2), 'utf8');
     }
     try {
       fs.writeFileSync(this.tmpPath, out);
       fs.renameSync(this.tmpPath, this.filePath);
     } catch (e) {
-      console.error("Failed to save notes:", e);
+      console.error('Failed to save notes:', e);
       if (this.onWriteError) this.onWriteError(e);
     }
   }
@@ -441,7 +400,7 @@ class NoteStore {
     // unless the caller is explicit about it.
     const record = defaultRecord({
       workspaceId: this.activeWorkspaceId(),
-      ...overrides,
+      ...overrides
     });
     this.data.notes.push(record);
     this.save();
@@ -609,5 +568,5 @@ module.exports = {
   THEME_MODES,
   ACCENT_IDS,
   DEFAULT_THEME,
-  DEFAULT_ACCENT,
+  DEFAULT_ACCENT
 };
