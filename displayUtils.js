@@ -1,11 +1,15 @@
 // Multi-monitor recovery: keep note windows reachable even after a
 // monitor is disconnected, or the saved position lands outside any
 // currently connected display's work area.
-const { screen } = require('electron');
+const { screen } = require("electron");
 
 function rectsIntersect(a, b) {
-  return a.x < b.x + b.width && a.x + a.width > b.x &&
-    a.y < b.y + b.height && a.y + a.height > b.y;
+  return (
+    a.x < b.x + b.width &&
+    a.x + a.width > b.x &&
+    a.y < b.y + b.height &&
+    a.y + a.height > b.y
+  );
 }
 
 // Returns { x, y, width, height, displayId } guaranteed to be at least
@@ -15,7 +19,7 @@ function clampToVisibleDisplay({ x, y, width, height }) {
   const h = height || 220;
   const displays = screen.getAllDisplays();
 
-  if (typeof x === 'number' && typeof y === 'number') {
+  if (typeof x === "number" && typeof y === "number") {
     const bounds = { x, y, width: w, height: h };
     const onScreen = displays.find((d) => rectsIntersect(bounds, d.workArea));
     if (onScreen) return { x, y, width: w, height: h, displayId: onScreen.id };
@@ -30,7 +34,7 @@ function clampToVisibleDisplay({ x, y, width, height }) {
     y: wa.y + 40,
     width: w,
     height: h,
-    displayId: primary.id
+    displayId: primary.id,
   };
 }
 

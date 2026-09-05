@@ -2,10 +2,10 @@
 // concerns live here; note *lifecycle* (what happens on move/resize/close)
 // is wired by the caller via callbacks, so this module has no knowledge of
 // the store.
-const path = require('path');
-const { BrowserWindow } = require('electron');
-const platform = require('./platform');
-const { clampToVisibleDisplay } = require('./displayUtils');
+const path = require("path");
+const { BrowserWindow } = require("electron");
+const platform = require("./platform");
+const { clampToVisibleDisplay } = require("./displayUtils");
 
 // Apply (or re-apply) screen-capture exclusion on a window.
 // On Windows, some Electron versions clear the SetWindowDisplayAffinity flag
@@ -35,13 +35,13 @@ function createNoteWindow(record, { onMoved, onResized, onClosed } = {}) {
     skipTaskbar: true,
     minWidth: 160,
     minHeight: 120,
-    backgroundColor: '#00000000',
+    backgroundColor: "#00000000",
     show: false,
     webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
+      preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
-      nodeIntegration: false
-    }
+      nodeIntegration: false,
+    },
   });
 
   platform.setPinned(win, record.pinned !== false);
@@ -49,23 +49,23 @@ function createNoteWindow(record, { onMoved, onResized, onClosed } = {}) {
   // Defense-in-depth: re-apply capture exclusion whenever Windows shows or
   // restores a note window (e.g. after minimize/restore or OS-driven show).
   if (platform.isWindows) {
-    win.on('show', () => applyContentProtection(win));
-    win.on('restore', () => applyContentProtection(win));
+    win.on("show", () => applyContentProtection(win));
+    win.on("restore", () => applyContentProtection(win));
   }
 
-  win.loadFile('note.html', { query: { id: record.id } });
+  win.loadFile("note.html", { query: { id: record.id } });
 
   // Defer content-protection and show until 'ready-to-show' so the native
   // window handle (HWND on Windows) is fully realized. Calling
   // setContentProtection before the handle exists silently fails on Windows.
-  win.once('ready-to-show', () => {
+  win.once("ready-to-show", () => {
     applyContentProtection(win);
     if (record.visible !== false) win.showInactive();
   });
 
-  if (onMoved) win.on('moved', () => onMoved(win));
-  if (onResized) win.on('resized', () => onResized(win));
-  if (onClosed) win.on('closed', () => onClosed());
+  if (onMoved) win.on("moved", () => onMoved(win));
+  if (onResized) win.on("resized", () => onResized(win));
+  if (onClosed) win.on("closed", () => onClosed());
 
   return win;
 }
