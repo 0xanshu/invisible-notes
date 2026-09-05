@@ -303,6 +303,7 @@ function buildAccentDots() {
     btn.dataset.accent = id;
     btn.title = def.label;
     btn.setAttribute('aria-label', def.label + ' accent');
+    btn.setAttribute('aria-pressed', 'false');
     btn.style.background = def.base;
     btn.addEventListener('click', () => window.manager.setAccent(id));
     wrap.appendChild(btn);
