@@ -1,8 +1,8 @@
 // Multi-monitor recovery: keep note windows reachable even after a
 // monitor is disconnected, or the saved position lands outside any
 // currently connected display's work area.
-const { screen } = require('electron');
-const { DEFAULT_NOTE_WIDTH, DEFAULT_NOTE_HEIGHT } = require('./noteSize');
+const { screen } = require("electron");
+const { DEFAULT_NOTE_WIDTH, DEFAULT_NOTE_HEIGHT } = require("./noteSize");
 
 function rectsIntersect(a, b) {
   return (

@@ -36,7 +36,7 @@ function createManagerModule({ store, actions, theme }) {
       activeWorkspace: store.activeWorkspaceId(),
       theme: store.getTheme(),
       accent: store.getAccent(),
-      effectiveDark: theme ? theme.effectiveDark() : false
+      effectiveDark: theme ? theme.effectiveDark() : false,
     };
   }
 
@@ -126,13 +126,13 @@ function createManagerModule({ store, actions, theme }) {
   });
 
   // ---------- Appearance (Manager-only theme + accent) ----------
-  ipcMain.on('manager:setTheme', (e, mode) => {
-    if (typeof mode !== 'string') return;
+  ipcMain.on("manager:setTheme", (e, mode) => {
+    if (typeof mode !== "string") return;
     if (actions.setTheme) actions.setTheme(mode);
   });
 
-  ipcMain.on('manager:setAccent', (e, id) => {
-    if (typeof id !== 'string') return;
+  ipcMain.on("manager:setAccent", (e, id) => {
+    if (typeof id !== "string") return;
     if (actions.setAccent) actions.setAccent(id);
   });
 

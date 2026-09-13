@@ -14,14 +14,16 @@ contextBridge.exposeInMainWorld("manager", {
   shortcuts: () => ipcRenderer.invoke("manager:shortcuts"),
   onShowShortcuts: (cb) => ipcRenderer.on("manager:showShortcuts", () => cb()),
   // Workspaces (issue #8)
-  setWorkspace: (id) => ipcRenderer.send('manager:setWorkspace', id),
-  createWorkspace: (name) => ipcRenderer.send('manager:createWorkspace', name),
-  renameWorkspace: (id, name) => ipcRenderer.send('manager:renameWorkspace', { id, name }),
-  deleteWorkspace: (id) => ipcRenderer.send('manager:deleteWorkspace', id),
-  moveNote: (id, workspaceId) => ipcRenderer.send('manager:moveNote', { id, workspaceId }),
-  exportAll: () => ipcRenderer.invoke('manager:export'),
-  importNotes: () => ipcRenderer.invoke('manager:import'),
+  setWorkspace: (id) => ipcRenderer.send("manager:setWorkspace", id),
+  createWorkspace: (name) => ipcRenderer.send("manager:createWorkspace", name),
+  renameWorkspace: (id, name) =>
+    ipcRenderer.send("manager:renameWorkspace", { id, name }),
+  deleteWorkspace: (id) => ipcRenderer.send("manager:deleteWorkspace", id),
+  moveNote: (id, workspaceId) =>
+    ipcRenderer.send("manager:moveNote", { id, workspaceId }),
+  exportAll: () => ipcRenderer.invoke("manager:export"),
+  importNotes: () => ipcRenderer.invoke("manager:import"),
   // Appearance (Manager-only theme + accent)
-  setTheme: (mode) => ipcRenderer.send('manager:setTheme', mode),
-  setAccent: (id) => ipcRenderer.send('manager:setAccent', id)
+  setTheme: (mode) => ipcRenderer.send("manager:setTheme", mode),
+  setAccent: (id) => ipcRenderer.send("manager:setAccent", id),
 });

@@ -10,8 +10,8 @@ const {
   DEFAULT_NOTE_WIDTH,
   DEFAULT_NOTE_HEIGHT,
   MIN_NOTE_WIDTH,
-  MIN_NOTE_HEIGHT
-} = require('./noteSize');
+  MIN_NOTE_HEIGHT,
+} = require("./noteSize");
 
 // The workspace every migrated note lands in. The id is fixed so migrations
 // have a stable target and so the "where do orphaned notes go" fallback has
@@ -28,10 +28,10 @@ const MAX_WORKSPACE_NAME_LENGTH = 40;
 
 // Appearance preferences (Manager-only theming). Note bodies keep their
 // per-note color; theme/accent only restyle Manager chrome.
-const THEME_MODES = ['light', 'dark', 'system'];
-const DEFAULT_THEME = 'system';
-const ACCENT_IDS = ['violet', 'blue', 'green', 'orange', 'pink'];
-const DEFAULT_ACCENT = 'violet';
+const THEME_MODES = ["light", "dark", "system"];
+const DEFAULT_THEME = "system";
+const ACCENT_IDS = ["violet", "blue", "green", "orange", "pink"];
+const DEFAULT_ACCENT = "violet";
 
 function sanitizeTheme(input) {
   return THEME_MODES.includes(input) ? input : DEFAULT_THEME;
@@ -136,7 +136,7 @@ function emptyStore() {
     settings: {
       activeWorkspace: workspace.id,
       theme: DEFAULT_THEME,
-      accent: DEFAULT_ACCENT
+      accent: DEFAULT_ACCENT,
     },
     workspaces: [workspace],
     notes: [],
@@ -196,7 +196,7 @@ function normalizeWorkspaces(data) {
       ...data.settings,
       activeWorkspace: ids.has(requested) ? requested : fallbackId,
       theme: sanitizeTheme(data.settings?.theme),
-      accent: sanitizeAccent(data.settings?.accent)
+      accent: sanitizeAccent(data.settings?.accent),
     },
     workspaces,
     notes,
@@ -619,5 +619,5 @@ module.exports = {
   THEME_MODES,
   ACCENT_IDS,
   DEFAULT_THEME,
-  DEFAULT_ACCENT
+  DEFAULT_ACCENT,
 };

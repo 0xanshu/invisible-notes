@@ -31,17 +31,47 @@ const wsDeleteEl = document.getElementById("wsDelete");
 // so a single CSS fallback can't serve all five accents. Ids must match
 // ACCENT_IDS in store.js; unknown ids fall back to violet.
 const ACCENTS = {
-  violet: { base: '#5b4bff', dk: '#4a3ae8', lt: '#f0edff', ltDark: '#2b2666', label: 'Violet' },
-  blue: { base: '#2563eb', dk: '#1d4ed8', lt: '#e0eaff', ltDark: '#233063', label: 'Blue' },
-  green: { base: '#15803d', dk: '#166534', lt: '#dcf5e3', ltDark: '#1e3a2a', label: 'Green' },
-  orange: { base: '#c2410c', dk: '#9a3412', lt: '#ffe9d6', ltDark: '#4a2a1a', label: 'Orange' },
-  pink: { base: '#be185d', dk: '#9d174d', lt: '#fce0ec', ltDark: '#47223c', label: 'Pink' }
+  violet: {
+    base: "#5b4bff",
+    dk: "#4a3ae8",
+    lt: "#f0edff",
+    ltDark: "#2b2666",
+    label: "Violet",
+  },
+  blue: {
+    base: "#2563eb",
+    dk: "#1d4ed8",
+    lt: "#e0eaff",
+    ltDark: "#233063",
+    label: "Blue",
+  },
+  green: {
+    base: "#15803d",
+    dk: "#166534",
+    lt: "#dcf5e3",
+    ltDark: "#1e3a2a",
+    label: "Green",
+  },
+  orange: {
+    base: "#c2410c",
+    dk: "#9a3412",
+    lt: "#ffe9d6",
+    ltDark: "#4a2a1a",
+    label: "Orange",
+  },
+  pink: {
+    base: "#be185d",
+    dk: "#9d174d",
+    lt: "#fce0ec",
+    ltDark: "#47223c",
+    label: "Pink",
+  },
 };
 
 let notes = [];
 let workspaces = [];
 let activeWorkspace = null;
-let appearance = { theme: 'system', accent: 'violet', effectiveDark: false };
+let appearance = { theme: "system", accent: "violet", effectiveDark: false };
 let query = "";
 let shortcuts = [];
 // null when the inline name row is closed, otherwise 'create' | 'rename'.
@@ -284,9 +314,11 @@ function applySnapshot(snapshot) {
   workspaces = snapshot.workspaces || [];
   activeWorkspace = snapshot.activeWorkspace || null;
   appearance = {
-    theme: ['light', 'dark', 'system'].includes(snapshot.theme) ? snapshot.theme : 'system',
-    accent: ACCENTS[snapshot.accent] ? snapshot.accent : 'violet',
-    effectiveDark: !!snapshot.effectiveDark
+    theme: ["light", "dark", "system"].includes(snapshot.theme)
+      ? snapshot.theme
+      : "system",
+    accent: ACCENTS[snapshot.accent] ? snapshot.accent : "violet",
+    effectiveDark: !!snapshot.effectiveDark,
   };
   applyAppearance();
   renderWorkspaces();
@@ -296,42 +328,53 @@ function applySnapshot(snapshot) {
 // ─── Appearance (Manager-only theme + accent) ──────────────
 function applyAppearance() {
   const root = document.documentElement;
-  root.dataset.theme = appearance.effectiveDark ? 'dark' : 'light';
+  root.dataset.theme = appearance.effectiveDark ? "dark" : "light";
   const accent = ACCENTS[appearance.accent] || ACCENTS.violet;
-  root.style.setProperty('--accent', accent.base);
-  root.style.setProperty('--accent-dk', accent.dk);
-  root.style.setProperty('--accent-lt', appearance.effectiveDark ? accent.ltDark : accent.lt);
-  document.querySelectorAll('[data-theme-opt]').forEach((btn) => {
-    btn.setAttribute('aria-pressed', String(btn.dataset.themeOpt === appearance.theme));
+  root.style.setProperty("--accent", accent.base);
+  root.style.setProperty("--accent-dk", accent.dk);
+  root.style.setProperty(
+    "--accent-lt",
+    appearance.effectiveDark ? accent.ltDark : accent.lt,
+  );
+  document.querySelectorAll("[data-theme-opt]").forEach((btn) => {
+    btn.setAttribute(
+      "aria-pressed",
+      String(btn.dataset.themeOpt === appearance.theme),
+    );
   });
-  document.querySelectorAll('#accents .accent-dot').forEach((dot) => {
-    dot.setAttribute('aria-pressed', String(dot.dataset.accent === appearance.accent));
+  document.querySelectorAll("#accents .accent-dot").forEach((dot) => {
+    dot.setAttribute(
+      "aria-pressed",
+      String(dot.dataset.accent === appearance.accent),
+    );
   });
 }
 
 function buildAccentDots() {
-  const wrap = document.getElementById('accents');
-  wrap.innerHTML = '';
+  const wrap = document.getElementById("accents");
+  wrap.innerHTML = "";
   for (const [id, def] of Object.entries(ACCENTS)) {
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'accent-dot';
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "accent-dot";
     btn.dataset.accent = id;
     btn.title = def.label;
-    btn.setAttribute('aria-label', def.label + ' accent');
-    btn.setAttribute('aria-pressed', 'false');
+    btn.setAttribute("aria-label", def.label + " accent");
+    btn.setAttribute("aria-pressed", "false");
     btn.style.background = def.base;
-    btn.addEventListener('click', () => window.manager.setAccent(id));
+    btn.addEventListener("click", () => window.manager.setAccent(id));
     wrap.appendChild(btn);
   }
 }
 
-document.querySelectorAll('[data-theme-opt]').forEach((btn) => {
-  btn.addEventListener('click', () => window.manager.setTheme(btn.dataset.themeOpt));
+document.querySelectorAll("[data-theme-opt]").forEach((btn) => {
+  btn.addEventListener("click", () =>
+    window.manager.setTheme(btn.dataset.themeOpt),
+  );
 });
 buildAccentDots();
 
-document.getElementById("exportNotes").addEventListener('click', async () => {
+document.getElementById("exportNotes").addEventListener("click", async () => {
   const res = await window.manager.exportAll();
   if (res && res.ok)
     flashStatus(`Exported ${res.count} note${plural(res.count)}`);

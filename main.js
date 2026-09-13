@@ -9,14 +9,14 @@ const {
   dialog,
   powerMonitor,
   safeStorage,
-  globalShortcut
-} = require('electron');
-const path = require('path');
-const { NoteStore } = require('./store');
-const { DEFAULT_NOTE_WIDTH, DEFAULT_NOTE_HEIGHT } = require('./noteSize');
-const platform = require('./platform');
-const { createNoteWindow, applyContentProtection } = require('./noteWindow');
-const { clampToVisibleDisplay, displayIdForPoint } = require('./displayUtils');
+  globalShortcut,
+} = require("electron");
+const path = require("path");
+const { NoteStore } = require("./store");
+const { DEFAULT_NOTE_WIDTH, DEFAULT_NOTE_HEIGHT } = require("./noteSize");
+const platform = require("./platform");
+const { createNoteWindow, applyContentProtection } = require("./noteWindow");
+const { clampToVisibleDisplay, displayIdForPoint } = require("./displayUtils");
 const {
   registerShortcuts,
   registerFallbackShortcut,
@@ -90,7 +90,7 @@ let tray = null;
 function applyThemeToOS() {
   if (!store) return;
   const mode = store.getTheme();
-  nativeTheme.themeSource = mode === 'system' ? 'system' : mode;
+  nativeTheme.themeSource = mode === "system" ? "system" : mode;
 }
 
 function resolveEffectiveDark() {
@@ -130,11 +130,12 @@ function createManager() {
       createWorkspace: (name) => createWorkspace(name),
       renameWorkspace: (id, name) => renameWorkspace(id, name),
       removeWorkspace: (id) => removeWorkspace(id),
-      moveNoteToWorkspace: (noteId, workspaceId) => moveNoteToWorkspace(noteId, workspaceId),
+      moveNoteToWorkspace: (noteId, workspaceId) =>
+        moveNoteToWorkspace(noteId, workspaceId),
       importNotes: (records, mode) => importNotes(records, mode),
       setTheme: (mode) => setThemeMode(mode),
-      setAccent: (id) => setAccentId(id)
-    }
+      setAccent: (id) => setAccentId(id),
+    },
   });
 }
 
@@ -309,8 +310,14 @@ function createNoteNearCursor() {
   // the work-area edge. The Math.max keeps the origin inside the work area on
   // displays too small to fit a whole note, where the right/bottom limit would
   // otherwise land left of / above the work area itself.
-  const x = Math.max(wa.x, Math.min(cursor.x + offset, wa.x + wa.width - DEFAULT_NOTE_WIDTH));
-  const y = Math.max(wa.y, Math.min(cursor.y + offset, wa.y + wa.height - DEFAULT_NOTE_HEIGHT));
+  const x = Math.max(
+    wa.x,
+    Math.min(cursor.x + offset, wa.x + wa.width - DEFAULT_NOTE_WIDTH),
+  );
+  const y = Math.max(
+    wa.y,
+    Math.min(cursor.y + offset, wa.y + wa.height - DEFAULT_NOTE_HEIGHT),
+  );
   const record = store.create({ x, y, displayId: display.id });
   openNoteWindow(record);
   updateTrayMenu();
@@ -632,7 +639,7 @@ if (!gotLock) {
     store = createStore();
     manager = createManager();
     applyThemeToOS();
-    nativeTheme.on('updated', () => {
+    nativeTheme.on("updated", () => {
       if (manager) manager.notifyChanged();
     });
 
