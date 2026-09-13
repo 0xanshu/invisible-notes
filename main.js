@@ -5,16 +5,18 @@ const {
   Tray,
   Menu,
   nativeImage,
+  nativeTheme,
   dialog,
   powerMonitor,
   safeStorage,
-  globalShortcut,
-} = require("electron");
-const path = require("path");
-const { NoteStore } = require("./store");
-const platform = require("./platform");
-const { createNoteWindow, applyContentProtection } = require("./noteWindow");
-const { clampToVisibleDisplay, displayIdForPoint } = require("./displayUtils");
+  globalShortcut
+} = require('electron');
+const path = require('path');
+const { NoteStore } = require('./store');
+const { DEFAULT_NOTE_WIDTH, DEFAULT_NOTE_HEIGHT } = require('./noteSize');
+const platform = require('./platform');
+const { createNoteWindow, applyContentProtection } = require('./noteWindow');
+const { clampToVisibleDisplay, displayIdForPoint } = require('./displayUtils');
 const {
   registerShortcuts,
   registerFallbackShortcut,
@@ -82,9 +84,40 @@ let tray = null;
 // createManagerModule registers IPC handlers that only act once a renderer
 // sends a message, so it can be created lazily after app is ready alongside
 // `store` (which createManagerModule closes over). See createStore() above.
+// ---------- Appearance (Manager-only theme) ----------
+// Single owner for the OS theme source. Renderers never touch nativeTheme
+// directly; they receive the resolved `effectiveDark` via manager snapshot.
+function applyThemeToOS() {
+  if (!store) return;
+  const mode = store.getTheme();
+  nativeTheme.themeSource = mode === 'system' ? 'system' : mode;
+}
+
+function resolveEffectiveDark() {
+  return nativeTheme.shouldUseDarkColors;
+}
+
+function setThemeMode(mode) {
+  if (!store || !manager) return null;
+  const clean = store.setTheme(mode);
+  applyThemeToOS();
+  manager.notifyChanged();
+  return clean;
+}
+
+function setAccentId(id) {
+  if (!store || !manager) return null;
+  const clean = store.setAccent(id);
+  manager.notifyChanged();
+  return clean;
+}
+
 function createManager() {
   return createManagerModule({
     store,
+    theme: {
+      effectiveDark: () => resolveEffectiveDark(),
+    },
     actions: {
       showNote: (id) => showNote(id),
       hideNote: (id) => hideNote(id),
@@ -97,10 +130,11 @@ function createManager() {
       createWorkspace: (name) => createWorkspace(name),
       renameWorkspace: (id, name) => renameWorkspace(id, name),
       removeWorkspace: (id) => removeWorkspace(id),
-      moveNoteToWorkspace: (noteId, workspaceId) =>
-        moveNoteToWorkspace(noteId, workspaceId),
+      moveNoteToWorkspace: (noteId, workspaceId) => moveNoteToWorkspace(noteId, workspaceId),
       importNotes: (records, mode) => importNotes(records, mode),
-    },
+      setTheme: (mode) => setThemeMode(mode),
+      setAccent: (id) => setAccentId(id)
+    }
   });
 }
 
@@ -271,8 +305,12 @@ function createNoteNearCursor() {
   const wa = display.workArea;
   // Cascade a little so stacked notes don't perfectly overlap.
   const offset = (noteWindows.size % 6) * 26;
-  const x = Math.min(cursor.x, wa.x + wa.width - 320) + offset;
-  const y = Math.min(cursor.y, wa.y + wa.height - 240) + offset;
+  // Clamp after applying the cascade, so a stacked note cannot be pushed past
+  // the work-area edge. The Math.max keeps the origin inside the work area on
+  // displays too small to fit a whole note, where the right/bottom limit would
+  // otherwise land left of / above the work area itself.
+  const x = Math.max(wa.x, Math.min(cursor.x + offset, wa.x + wa.width - DEFAULT_NOTE_WIDTH));
+  const y = Math.max(wa.y, Math.min(cursor.y + offset, wa.y + wa.height - DEFAULT_NOTE_HEIGHT));
   const record = store.create({ x, y, displayId: display.id });
   openNoteWindow(record);
   updateTrayMenu();
@@ -593,6 +631,10 @@ if (!gotLock) {
     // up the manager that depends on it.
     store = createStore();
     manager = createManager();
+    applyThemeToOS();
+    nativeTheme.on('updated', () => {
+      if (manager) manager.notifyChanged();
+    });
 
     setupTray();
     registerFallbackShortcut(globalShortcut, () => createNoteNearCursor());

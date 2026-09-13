@@ -2,10 +2,11 @@
 // concerns live here; note *lifecycle* (what happens on move/resize/close)
 // is wired by the caller via callbacks, so this module has no knowledge of
 // the store.
-const path = require("path");
-const { BrowserWindow } = require("electron");
-const platform = require("./platform");
-const { clampToVisibleDisplay } = require("./displayUtils");
+const path = require('path');
+const { BrowserWindow } = require('electron');
+const platform = require('./platform');
+const { clampToVisibleDisplay } = require('./displayUtils');
+const { MIN_NOTE_WIDTH, MIN_NOTE_HEIGHT } = require('./noteSize');
 
 // Apply (or re-apply) screen-capture exclusion on a window.
 // On Windows, some Electron versions clear the SetWindowDisplayAffinity flag
@@ -21,7 +22,15 @@ function applyContentProtection(win) {
 }
 
 function createNoteWindow(record, { onMoved, onResized, onClosed } = {}) {
-  const bounds = clampToVisibleDisplay(record);
+  // Notes saved before minWidth/minHeight were raised can still have a
+  // smaller width/height on disk. Clamp to the enforced minimums before
+  // computing placement so clampToVisibleDisplay positions the note for
+  // the size it will actually render at, not the stale saved size.
+  const bounds = clampToVisibleDisplay({
+    ...record,
+    width: Math.max(record.width || 0, MIN_NOTE_WIDTH),
+    height: Math.max(record.height || 0, MIN_NOTE_HEIGHT)
+  });
 
   const win = new BrowserWindow({
     width: bounds.width,
@@ -33,9 +42,10 @@ function createNoteWindow(record, { onMoved, onResized, onClosed } = {}) {
     resizable: true,
     hasShadow: false,
     skipTaskbar: true,
-    minWidth: 160,
-    minHeight: 120,
-    backgroundColor: "#00000000",
+    // Floor the window at the size the hover toolbar needs to render in full.
+    minWidth: MIN_NOTE_WIDTH,
+    minHeight: MIN_NOTE_HEIGHT,
+    backgroundColor: '#00000000',
     show: false,
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),

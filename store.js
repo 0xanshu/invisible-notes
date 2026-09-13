@@ -6,6 +6,13 @@ const path = require("path");
 
 const STORE_VERSION = 6;
 
+const {
+  DEFAULT_NOTE_WIDTH,
+  DEFAULT_NOTE_HEIGHT,
+  MIN_NOTE_WIDTH,
+  MIN_NOTE_HEIGHT
+} = require('./noteSize');
+
 // The workspace every migrated note lands in. The id is fixed so migrations
 // have a stable target and so the "where do orphaned notes go" fallback has
 // something to prefer.
@@ -18,6 +25,21 @@ const STORE_VERSION = 6;
 const DEFAULT_WORKSPACE_ID = "ws-default";
 const DEFAULT_WORKSPACE_NAME = "Default";
 const MAX_WORKSPACE_NAME_LENGTH = 40;
+
+// Appearance preferences (Manager-only theming). Note bodies keep their
+// per-note color; theme/accent only restyle Manager chrome.
+const THEME_MODES = ['light', 'dark', 'system'];
+const DEFAULT_THEME = 'system';
+const ACCENT_IDS = ['violet', 'blue', 'green', 'orange', 'pink'];
+const DEFAULT_ACCENT = 'violet';
+
+function sanitizeTheme(input) {
+  return THEME_MODES.includes(input) ? input : DEFAULT_THEME;
+}
+
+function sanitizeAccent(input) {
+  return ACCENT_IDS.includes(input) ? input : DEFAULT_ACCENT;
+}
 
 function nextId() {
   return (
@@ -69,8 +91,8 @@ function defaultRecord(overrides = {}) {
     color: overrides.color || "yellow",
     x: overrides.x,
     y: overrides.y,
-    width: overrides.width || 300,
-    height: overrides.height || 220,
+    width: overrides.width || DEFAULT_NOTE_WIDTH,
+    height: overrides.height || DEFAULT_NOTE_HEIGHT,
     displayId: overrides.displayId ?? null,
     opacity: typeof overrides.opacity === "number" ? overrides.opacity : 0.85,
     fontSize: overrides.fontSize || 15,
@@ -111,7 +133,11 @@ function emptyStore() {
   });
   return {
     version: STORE_VERSION,
-    settings: { activeWorkspace: workspace.id },
+    settings: {
+      activeWorkspace: workspace.id,
+      theme: DEFAULT_THEME,
+      accent: DEFAULT_ACCENT
+    },
     workspaces: [workspace],
     notes: [],
   };
@@ -163,11 +189,14 @@ function normalizeWorkspaces(data) {
   const requested = data.settings?.activeWorkspace;
   return {
     version: STORE_VERSION,
-    // Spread first so future app-level settings (theme in #2, custom
-    // shortcuts in #5) survive a workspace migration untouched.
+    // Spread first so future app-level settings
+    // survive a workspace migration untouched. Theme/accent are re-sanitized
+    // so a hand-edited value can never break the UI.
     settings: {
       ...data.settings,
       activeWorkspace: ids.has(requested) ? requested : fallbackId,
+      theme: sanitizeTheme(data.settings?.theme),
+      accent: sanitizeAccent(data.settings?.accent)
     },
     workspaces,
     notes,
@@ -269,10 +298,13 @@ function normalizeImport(data) {
     )
       record.opacity = 0.85;
     if (!Number.isFinite(record.fontSize)) record.fontSize = 15;
-    if (!Number.isFinite(record.width) || record.width < 160)
-      record.width = 300;
-    if (!Number.isFinite(record.height) || record.height < 120)
-      record.height = 220;
+    // A missing or unusable size falls back to the default; a real but
+    // undersized one (a backup written when the minimum was lower) is only
+    // raised to the minimum, so imported notes keep the size the user chose.
+    if (!Number.isFinite(record.width)) record.width = DEFAULT_NOTE_WIDTH;
+    else if (record.width < MIN_NOTE_WIDTH) record.width = MIN_NOTE_WIDTH;
+    if (!Number.isFinite(record.height)) record.height = DEFAULT_NOTE_HEIGHT;
+    else if (record.height < MIN_NOTE_HEIGHT) record.height = MIN_NOTE_HEIGHT;
     if (!Number.isFinite(record.x)) record.x = undefined;
     if (!Number.isFinite(record.y)) record.y = undefined;
     if (!Number.isFinite(record.createdAt)) record.createdAt = Date.now();
@@ -456,6 +488,31 @@ class NoteStore {
     return this.data.settings;
   }
 
+  // ---------- Appearance (Manager-only theme + accent) ----------
+  getTheme() {
+    return sanitizeTheme(this.data.settings.theme);
+  }
+
+  setTheme(mode) {
+    const clean = sanitizeTheme(mode);
+    if (this.data.settings.theme === clean) return clean;
+    this.data.settings.theme = clean;
+    this.save();
+    return clean;
+  }
+
+  getAccent() {
+    return sanitizeAccent(this.data.settings.accent);
+  }
+
+  setAccent(id) {
+    const clean = sanitizeAccent(id);
+    if (this.data.settings.accent === clean) return clean;
+    this.data.settings.accent = clean;
+    this.save();
+    return clean;
+  }
+
   workspaces() {
     return this.data.workspaces;
   }
@@ -557,4 +614,10 @@ module.exports = {
   STORE_VERSION,
   DEFAULT_WORKSPACE_ID,
   sanitizeWorkspaceName,
+  sanitizeTheme,
+  sanitizeAccent,
+  THEME_MODES,
+  ACCENT_IDS,
+  DEFAULT_THEME,
+  DEFAULT_ACCENT
 };

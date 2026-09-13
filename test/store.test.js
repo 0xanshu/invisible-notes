@@ -1,15 +1,15 @@
-const test = require("node:test");
-const assert = require("node:assert/strict");
-const fs = require("node:fs");
-const os = require("node:os");
-const path = require("node:path");
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
 
+const { NoteStore, normalizeImport, STORE_VERSION, DEFAULT_WORKSPACE_ID } = require('../store');
 const {
-  NoteStore,
-  normalizeImport,
-  STORE_VERSION,
-  DEFAULT_WORKSPACE_ID,
-} = require("../store");
+  DEFAULT_NOTE_WIDTH,
+  MIN_NOTE_WIDTH,
+  MIN_NOTE_HEIGHT
+} = require('../noteSize');
 
 const tempDirs = [];
 const stores = [];
@@ -122,7 +122,45 @@ test("keeps settings keys it does not know about", () => {
   assert.equal(store.activeWorkspaceId(), DEFAULT_WORKSPACE_ID);
 });
 
-test("repairs notes and an active workspace pointing at a workspace that is gone", () => {
+test('fresh install defaults to system theme and violet accent', () => {
+  const store = freshStore();
+  assert.equal(store.getTheme(), 'system');
+  assert.equal(store.getAccent(), 'violet');
+});
+
+test('sanitizes invalid theme and accent values on load', () => {
+  const store = freshStore({
+    version: STORE_VERSION,
+    settings: { activeWorkspace: DEFAULT_WORKSPACE_ID, theme: 'neon', accent: '#fff' },
+    workspaces: [{ id: DEFAULT_WORKSPACE_ID, name: 'D' }],
+    notes: []
+  });
+  assert.equal(store.getTheme(), 'system');
+  assert.equal(store.getAccent(), 'violet');
+});
+
+test('setTheme and setAccent persist across reload', () => {
+  const dir = storeDir();
+  const first = openStore(dir);
+  first.setTheme('dark');
+  first.setAccent('blue');
+  first.flush();
+
+  const second = openStore(dir);
+  assert.equal(second.getTheme(), 'dark');
+  assert.equal(second.getAccent(), 'blue');
+});
+
+test('import replace preserves theme and accent', () => {
+  const store = freshStore();
+  store.setTheme('light');
+  store.setAccent('green');
+  store.replaceAll([{ id: 'a', text: 'x', workspaceId: DEFAULT_WORKSPACE_ID }]);
+  assert.equal(store.getTheme(), 'light');
+  assert.equal(store.getAccent(), 'green');
+});
+
+test('repairs notes and an active workspace pointing at a workspace that is gone', () => {
   const store = freshStore({
     version: STORE_VERSION,
     settings: { activeWorkspace: "ws-gone" },
@@ -389,8 +427,10 @@ test("normalizeImport coerces malformed numeric fields to sane values", () => {
   });
   assert.equal(records.length, 1);
   const r = records[0];
-  assert.equal(r.width, 300);
-  assert.equal(r.height, 220);
+  // NaN is unusable, so width falls back to the default; height 5 is a real
+  // number, so it is only raised to the minimum.
+  assert.equal(r.width, DEFAULT_NOTE_WIDTH);
+  assert.equal(r.height, MIN_NOTE_HEIGHT);
   assert.equal(r.opacity, 0.85);
   assert.equal(r.fontSize, 15);
   assert.equal(r.x, undefined);
@@ -399,7 +439,16 @@ test("normalizeImport coerces malformed numeric fields to sane values", () => {
   assert.equal(r.updatedAt, r.createdAt);
 });
 
-test("normalizeImport drops duplicate and malformed entries", () => {
+test('normalizeImport raises an undersized note to the minimum, not the default', () => {
+  const records = normalizeImport({
+    version: STORE_VERSION,
+    notes: [{ id: 'a', width: MIN_NOTE_WIDTH - 80, height: MIN_NOTE_HEIGHT + 30 }]
+  });
+  assert.equal(records[0].width, MIN_NOTE_WIDTH);
+  assert.equal(records[0].height, MIN_NOTE_HEIGHT + 30);
+});
+
+test('normalizeImport drops duplicate and malformed entries', () => {
   const records = normalizeImport({
     version: STORE_VERSION,
     notes: [
