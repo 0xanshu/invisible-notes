@@ -9,21 +9,21 @@ const {
   dialog,
   powerMonitor,
   safeStorage,
-  globalShortcut
-} = require('electron');
-const path = require('path');
-const { NoteStore } = require('./store');
-const { DEFAULT_NOTE_WIDTH, DEFAULT_NOTE_HEIGHT } = require('./noteSize');
-const platform = require('./platform');
-const { createNoteWindow, applyContentProtection } = require('./noteWindow');
-const { clampToVisibleDisplay, displayIdForPoint } = require('./displayUtils');
+  globalShortcut,
+} = require("electron");
+const path = require("path");
+const { NoteStore } = require("./store");
+const { DEFAULT_NOTE_WIDTH, DEFAULT_NOTE_HEIGHT } = require("./noteSize");
+const platform = require("./platform");
+const { createNoteWindow, applyContentProtection } = require("./noteWindow");
+const { clampToVisibleDisplay, displayIdForPoint } = require("./displayUtils");
 const {
   registerShortcuts,
   registerFallbackShortcut,
   unregisterFallbackShortcut,
-  getShortcuts
-} = require('./shortcuts');
-const { createManagerModule } = require('./manager');
+  getShortcuts,
+} = require("./shortcuts");
+const { createManagerModule } = require("./manager");
 
 // Show plain-language notices only — never a raw stack trace to the user.
 let writeErrorShown = false;
@@ -45,33 +45,33 @@ function createStoreCodec() {
   if (safeStorage && safeStorage.isEncryptionAvailable()) {
     return {
       encrypt: (plain) => safeStorage.encryptString(plain),
-      decrypt: (cipher) => safeStorage.decryptString(cipher)
+      decrypt: (cipher) => safeStorage.decryptString(cipher),
     };
   }
   console.warn(
-    'OS-level storage encryption (safeStorage) is unavailable on this system; ' +
-      'notes will be stored in plaintext.'
+    "OS-level storage encryption (safeStorage) is unavailable on this system; " +
+      "notes will be stored in plaintext.",
   );
   return null;
 }
 
 function createStore() {
-  return new NoteStore(app.getPath('userData'), {
+  return new NoteStore(app.getPath("userData"), {
     codec: createStoreCodec(),
     onCorrupted: () => {
       dialog.showErrorBox(
-        'Notes file was reset',
-        'Your saved notes file could not be read and looked corrupted, so it was backed up and Ghost Notes started fresh. Your previous notes were not deleted — the backup is in the app data folder if you need to recover them.'
+        "Notes file was reset",
+        "Your saved notes file could not be read and looked corrupted, so it was backed up and Ghost Notes started fresh. Your previous notes were not deleted — the backup is in the app data folder if you need to recover them.",
       );
     },
     onWriteError: () => {
       if (writeErrorShown) return;
       writeErrorShown = true;
       dialog.showErrorBox(
-        'Could not save notes',
-        'Ghost Notes could not write to its data folder. Check that the app has permission to write there and that the disk is not full. Your notes in memory are safe until you quit.'
+        "Could not save notes",
+        "Ghost Notes could not write to its data folder. Check that the app has permission to write there and that the disk is not full. Your notes in memory are safe until you quit.",
       );
-    }
+    },
   });
 }
 
@@ -90,7 +90,7 @@ let tray = null;
 function applyThemeToOS() {
   if (!store) return;
   const mode = store.getTheme();
-  nativeTheme.themeSource = mode === 'system' ? 'system' : mode;
+  nativeTheme.themeSource = mode === "system" ? "system" : mode;
 }
 
 function resolveEffectiveDark() {
@@ -130,11 +130,12 @@ function createManager() {
       createWorkspace: (name) => createWorkspace(name),
       renameWorkspace: (id, name) => renameWorkspace(id, name),
       removeWorkspace: (id) => removeWorkspace(id),
-      moveNoteToWorkspace: (noteId, workspaceId) => moveNoteToWorkspace(noteId, workspaceId),
+      moveNoteToWorkspace: (noteId, workspaceId) =>
+        moveNoteToWorkspace(noteId, workspaceId),
       importNotes: (records, mode) => importNotes(records, mode),
       setTheme: (mode) => setThemeMode(mode),
-      setAccent: (id) => setAccentId(id)
-    }
+      setAccent: (id) => setAccentId(id),
+    },
   });
 }
 
@@ -147,17 +148,23 @@ function openNoteWindow(record) {
     onResized: (w) => {
       const [x, y] = w.getPosition();
       const [width, height] = w.getSize();
-      store.update(record.id, { x, y, width, height, displayId: displayIdForPoint(x, y) });
+      store.update(record.id, {
+        x,
+        y,
+        width,
+        height,
+        displayId: displayIdForPoint(x, y),
+      });
     },
     onClosed: () => {
       noteWindows.delete(record.id);
-    }
+    },
   });
   registerShortcuts(win, {
     newNote: () => createNoteNearCursor(),
     toggleHideAll: () => toggleHideAll(),
     toggleGhostAll: () => toggleGhostAll(),
-    openManager: () => manager.openManagerWindow()
+    openManager: () => manager.openManagerWindow(),
   });
   noteWindows.set(record.id, win);
   return win;
@@ -207,7 +214,8 @@ function closeWindowFor(id) {
 function applyActiveWorkspace() {
   const activeId = store.activeWorkspaceId();
   for (const record of store.all()) {
-    if (record.visible && record.workspaceId === activeId) openWindowFor(record.id);
+    if (record.visible && record.workspaceId === activeId)
+      openWindowFor(record.id);
     else closeWindowFor(record.id);
   }
 }
@@ -302,8 +310,14 @@ function createNoteNearCursor() {
   // the work-area edge. The Math.max keeps the origin inside the work area on
   // displays too small to fit a whole note, where the right/bottom limit would
   // otherwise land left of / above the work area itself.
-  const x = Math.max(wa.x, Math.min(cursor.x + offset, wa.x + wa.width - DEFAULT_NOTE_WIDTH));
-  const y = Math.max(wa.y, Math.min(cursor.y + offset, wa.y + wa.height - DEFAULT_NOTE_HEIGHT));
+  const x = Math.max(
+    wa.x,
+    Math.min(cursor.x + offset, wa.x + wa.width - DEFAULT_NOTE_WIDTH),
+  );
+  const y = Math.max(
+    wa.y,
+    Math.min(cursor.y + offset, wa.y + wa.height - DEFAULT_NOTE_HEIGHT),
+  );
   const record = store.create({ x, y, displayId: display.id });
   openNoteWindow(record);
   updateTrayMenu();
@@ -325,9 +339,13 @@ function importNotes(records, mode) {
   // unknown id onto the active workspace before saving.
   const workspaceIds = new Set(store.workspaces().map((w) => w.id));
   const fallbackWorkspaceId = store.activeWorkspaceId();
-  records = records.map((r) => (workspaceIds.has(r.workspaceId) ? r : { ...r, workspaceId: fallbackWorkspaceId }));
+  records = records.map((r) =>
+    workspaceIds.has(r.workspaceId)
+      ? r
+      : { ...r, workspaceId: fallbackWorkspaceId },
+  );
 
-  if (mode === 'replace') {
+  if (mode === "replace") {
     // Close every note window first so no window outlives its record — and
     // no window keeps stale content for an imported record that happens to
     // reuse an existing id. They are reopened fresh from the new store below.
@@ -357,11 +375,23 @@ function importNotes(records, mode) {
   // exported position and timestamps.
   for (const record of store.all()) {
     if (noteWindows.has(record.id)) continue;
-    const safe = clampToVisibleDisplay({ x: record.x, y: record.y, width: record.width, height: record.height });
+    const safe = clampToVisibleDisplay({
+      x: record.x,
+      y: record.y,
+      width: record.width,
+      height: record.height,
+    });
     if (safe.x !== record.x || safe.y !== record.y) {
-      store.update(record.id, { x: safe.x, y: safe.y, width: safe.width, height: safe.height, displayId: safe.displayId });
+      store.update(record.id, {
+        x: safe.x,
+        y: safe.y,
+        width: safe.width,
+        height: safe.height,
+        displayId: safe.displayId,
+      });
     }
-    if (record.visible && record.workspaceId === store.activeWorkspaceId()) openNoteWindow(store.get(record.id));
+    if (record.visible && record.workspaceId === store.activeWorkspaceId())
+      openNoteWindow(store.get(record.id));
   }
 
   updateTrayMenu();
@@ -386,7 +416,7 @@ function toggleGhostAll() {
   for (const [id, win] of noteWindows) {
     const record = store.get(id);
     if (!record || record.workspaceId !== activeId) continue;
-    if (!win.isDestroyed()) win.webContents.send('note:toggleGhost');
+    if (!win.isDestroyed()) win.webContents.send("note:toggleGhost");
   }
 }
 
@@ -421,16 +451,16 @@ function reconcileOpenWindowsAfterSystemChange() {
 }
 
 // ---------- IPC from renderer ----------
-ipcMain.on('note:update', (e, payload) => {
-  if (!payload || typeof payload.id !== 'string') return;
+ipcMain.on("note:update", (e, payload) => {
+  if (!payload || typeof payload.id !== "string") return;
   const { id, text, color, opacity, fontSize, monospace, ghost } = payload;
   const patch = {};
-  if (typeof text === 'string') patch.text = text;
-  if (typeof color === 'string') patch.color = color;
-  if (typeof opacity === 'number') patch.opacity = opacity;
-  if (typeof fontSize === 'number') patch.fontSize = fontSize;
-  if (typeof monospace === 'boolean') patch.monospace = monospace;
-  if (typeof ghost === 'boolean') patch.ghost = ghost;
+  if (typeof text === "string") patch.text = text;
+  if (typeof color === "string") patch.color = color;
+  if (typeof opacity === "number") patch.opacity = opacity;
+  if (typeof fontSize === "number") patch.fontSize = fontSize;
+  if (typeof monospace === "boolean") patch.monospace = monospace;
+  if (typeof ghost === "boolean") patch.ghost = ghost;
   const record = store.update(id, patch);
 
   // Click-through mode only works if you can still reach the note to turn
@@ -438,7 +468,7 @@ ipcMain.on('note:update', (e, payload) => {
   // covered by another window while click-through, there'd be no way to
   // reach it at all — so force always-on-top while ghosted, regardless of
   // the pin preference, and restore that preference when ghost turns off.
-  if (typeof ghost === 'boolean' && record) {
+  if (typeof ghost === "boolean" && record) {
     const win = noteWindows.get(id);
     if (win && !win.isDestroyed()) {
       platform.setPinned(win, ghost ? true : record.pinned !== false);
@@ -448,24 +478,25 @@ ipcMain.on('note:update', (e, payload) => {
   manager.notifyChanged();
 });
 
-ipcMain.on('note:setIgnoreMouse', (e, { id, ignore }) => {
+ipcMain.on("note:setIgnoreMouse", (e, { id, ignore }) => {
   const win = noteWindows.get(id);
-  if (win && !win.isDestroyed()) win.setIgnoreMouseEvents(!!ignore, { forward: true });
+  if (win && !win.isDestroyed())
+    win.setIgnoreMouseEvents(!!ignore, { forward: true });
 });
 
-ipcMain.on('note:setPinned', (e, { id, pinned }) => {
-  if (typeof id !== 'string') return;
+ipcMain.on("note:setPinned", (e, { id, pinned }) => {
+  if (typeof id !== "string") return;
   const win = noteWindows.get(id);
   if (win && !win.isDestroyed()) platform.setPinned(win, !!pinned);
   store.update(id, { pinned: !!pinned });
   manager.notifyChanged();
 });
 
-ipcMain.handle('note:getState', (e, id) => store.get(id));
+ipcMain.handle("note:getState", (e, id) => store.get(id));
 
-ipcMain.on('note:close', (e, id) => hideNote(id));
+ipcMain.on("note:close", (e, id) => hideNote(id));
 
-ipcMain.on('note:new', () => createNoteNearCursor());
+ipcMain.on("note:new", () => createNoteNearCursor());
 
 // ---------- Tray ----------
 function buildTrayIcon() {
@@ -475,12 +506,17 @@ function buildTrayIcon() {
   // silhouette, so it must NOT be marked as a template image — macOS
   // template mode discards color and uses alpha as a mask, which turns
   // any non-monochrome glyph into a solid blob.
-  return nativeImage.createFromPath(path.join(__dirname, 'build', 'tray-icon.png'));
+  return nativeImage.createFromPath(
+    path.join(__dirname, "build", "tray-icon.png"),
+  );
 }
 
 function noteLabel(record) {
-  const snippet = (record.title || record.text || '').replace(/\s+/g, ' ').trim().slice(0, 30);
-  return snippet || 'Untitled note';
+  const snippet = (record.title || record.text || "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 30);
+  return snippet || "Untitled note";
 }
 
 // Lists the active workspace's records, open or hidden, so a hidden note is
@@ -488,10 +524,11 @@ function noteLabel(record) {
 // that workspace from the Workspace submenu.
 function buildNotesSubmenu() {
   const records = store.notesInWorkspace(store.activeWorkspaceId());
-  if (records.length === 0) return [{ label: 'No notes in this workspace', enabled: false }];
+  if (records.length === 0)
+    return [{ label: "No notes in this workspace", enabled: false }];
   return records.map((record) => ({
-    label: `${record.visible ? '●' : '○'} ${noteLabel(record)}`,
-    click: () => (record.visible ? hideNote(record.id) : showNote(record.id))
+    label: `${record.visible ? "●" : "○"} ${noteLabel(record)}`,
+    click: () => (record.visible ? hideNote(record.id) : showNote(record.id)),
   }));
 }
 
@@ -501,9 +538,9 @@ function buildWorkspaceSubmenu() {
   const activeId = store.activeWorkspaceId();
   return store.workspaces().map((workspace) => ({
     label: `${workspace.name} (${store.notesInWorkspace(workspace.id).length})`,
-    type: 'radio',
+    type: "radio",
     checked: workspace.id === activeId,
-    click: () => setActiveWorkspace(workspace.id)
+    click: () => setActiveWorkspace(workspace.id),
   }));
 }
 
@@ -513,48 +550,73 @@ function updateTrayMenu() {
   // Accelerators come from the shortcut definitions rather than being spelled
   // out again here, so the tray can never advertise a binding the app has
   // stopped answering to.
-  const accelerator = Object.fromEntries(getShortcuts().map((s) => [s.id, s.accelerator]));
+  const accelerator = Object.fromEntries(
+    getShortcuts().map((s) => [s.id, s.accelerator]),
+  );
   const activeWorkspace = store.getWorkspace(store.activeWorkspaceId());
   const menu = Menu.buildFromTemplate([
-    { label: 'New Note', accelerator: accelerator.newNote, click: () => createNoteNearCursor() },
-    { label: 'Notes Manager…', accelerator: accelerator.openManager, click: () => manager.openManagerWindow() },
-    { type: 'separator' },
-    { label: `Workspace: ${activeWorkspace ? activeWorkspace.name : '(none)'}`, enabled: false },
-    { label: 'Switch Workspace', submenu: buildWorkspaceSubmenu() },
-    { label: 'Notes', submenu: buildNotesSubmenu() },
-    { label: 'Hide/Show All', accelerator: accelerator.toggleHideAll, click: () => toggleHideAll() },
-    { label: 'Toggle Click-Through (all)', accelerator: accelerator.toggleGhostAll, click: () => toggleGhostAll() },
-    { type: 'separator' },
     {
-      label: 'Keyboard Shortcuts…',
-      click: () => manager.openManagerWindow({ showShortcuts: true })
+      label: "New Note",
+      accelerator: accelerator.newNote,
+      click: () => createNoteNearCursor(),
     },
-    { type: 'separator' },
-    { label: 'Notes are invisible to screen sharing ✓', enabled: false },
+    {
+      label: "Notes Manager…",
+      accelerator: accelerator.openManager,
+      click: () => manager.openManagerWindow(),
+    },
+    { type: "separator" },
+    {
+      label: `Workspace: ${activeWorkspace ? activeWorkspace.name : "(none)"}`,
+      enabled: false,
+    },
+    { label: "Switch Workspace", submenu: buildWorkspaceSubmenu() },
+    { label: "Notes", submenu: buildNotesSubmenu() },
+    {
+      label: "Hide/Show All",
+      accelerator: accelerator.toggleHideAll,
+      click: () => toggleHideAll(),
+    },
+    {
+      label: "Toggle Click-Through (all)",
+      accelerator: accelerator.toggleGhostAll,
+      click: () => toggleGhostAll(),
+    },
+    { type: "separator" },
+    {
+      label: "Keyboard Shortcuts…",
+      click: () => manager.openManagerWindow({ showShortcuts: true }),
+    },
+    { type: "separator" },
+    { label: "Notes are invisible to screen sharing ✓", enabled: false },
     ...(caveat ? [{ label: caveat, enabled: false }] : []),
-    { type: 'separator' },
+    { type: "separator" },
     {
       label: `About Ghost Notes (v${app.getVersion()})`,
       click: () => {
         dialog.showMessageBox({
-          type: 'info',
-          title: 'About Ghost Notes',
-          message: 'Ghost Notes',
-          detail: `Version ${app.getVersion()}\nPrivate, local sticky notes invisible to screen sharing.`
+          type: "info",
+          title: "About Ghost Notes",
+          message: "Ghost Notes",
+          detail: `Version ${app.getVersion()}\nPrivate, local sticky notes invisible to screen sharing.`,
         });
-      }
+      },
     },
-    { type: 'separator' },
-    { label: 'Quit Ghost Notes', accelerator: 'CmdOrCtrl+Q', click: () => app.quit() }
+    { type: "separator" },
+    {
+      label: "Quit Ghost Notes",
+      accelerator: "CmdOrCtrl+Q",
+      click: () => app.quit(),
+    },
   ]);
   tray.setContextMenu(menu);
 }
 
 function setupTray() {
   tray = new Tray(buildTrayIcon());
-  tray.setToolTip('Ghost Notes');
+  tray.setToolTip("Ghost Notes");
   updateTrayMenu();
-  tray.on('click', () => tray.popUpContextMenu());
+  tray.on("click", () => tray.popUpContextMenu());
 }
 
 // ---------- App lifecycle ----------
@@ -564,7 +626,7 @@ const gotLock = app.requestSingleInstanceLock();
 if (!gotLock) {
   app.quit();
 } else {
-  app.on('second-instance', () => {
+  app.on("second-instance", () => {
     if (tray) tray.popUpContextMenu();
   });
 
@@ -577,7 +639,7 @@ if (!gotLock) {
     store = createStore();
     manager = createManager();
     applyThemeToOS();
-    nativeTheme.on('updated', () => {
+    nativeTheme.on("updated", () => {
       if (manager) manager.notifyChanged();
     });
 
@@ -596,27 +658,27 @@ if (!gotLock) {
       newNote: () => createNoteNearCursor(),
       toggleHideAll: () => toggleHideAll(),
       toggleGhostAll: () => toggleGhostAll(),
-      openManager: () => manager.openManagerWindow()
+      openManager: () => manager.openManagerWindow(),
     });
 
-    screen.on('display-added', reconcileOpenWindowsAfterSystemChange);
-    screen.on('display-removed', reconcileOpenWindowsAfterSystemChange);
-    screen.on('display-metrics-changed', reconcileOpenWindowsAfterSystemChange);
+    screen.on("display-added", reconcileOpenWindowsAfterSystemChange);
+    screen.on("display-removed", reconcileOpenWindowsAfterSystemChange);
+    screen.on("display-metrics-changed", reconcileOpenWindowsAfterSystemChange);
 
     // Waking from sleep can silently change the connected-display set before
     // the OS fires its own display events — re-check note positions either way.
-    powerMonitor.on('resume', reconcileOpenWindowsAfterSystemChange);
-    powerMonitor.on('unlock-screen', reconcileOpenWindowsAfterSystemChange);
+    powerMonitor.on("resume", reconcileOpenWindowsAfterSystemChange);
+    powerMonitor.on("unlock-screen", reconcileOpenWindowsAfterSystemChange);
   });
 
-  app.on('before-quit', () => {
+  app.on("before-quit", () => {
     store.flush();
   });
 
-  app.on('will-quit', () => {
+  app.on("will-quit", () => {
     unregisterFallbackShortcut(globalShortcut);
   });
 
   // Keep running with no visible windows (tray app).
-  app.on('window-all-closed', () => {});
+  app.on("window-all-closed", () => {});
 }
