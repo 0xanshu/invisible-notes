@@ -107,7 +107,10 @@ function setMonospace(on) {
   push();
 }
 
-monoBtn.addEventListener("click", () => setMonospace(!state.monospace));
+monoBtn.addEventListener("click", (e) => {
+  e.stopPropagation();
+  setMonospace(!state.monospace);
+});
 
 function applyColor(color) {
   const c = COLORS[color] || COLORS.yellow;
@@ -192,6 +195,53 @@ function applyBlockFormat(tagName) {
   cleanWebKitStyles();
 }
 
+function selectedListItems() {
+  const sel = window.getSelection();
+  if (!sel.rangeCount) return [];
+
+  const allLis = Array.from(textEl.querySelectorAll("li"));
+  let items = [];
+  if (!sel.isCollapsed) {
+    items = allLis.filter((li) => sel.containsNode(li, true));
+  }
+
+  if (items.length === 0) {
+    let node = sel.anchorNode;
+    while (node && node !== textEl) {
+      if (node.nodeName === "LI") {
+        items.push(node);
+        break;
+      }
+      node = node.parentNode;
+    }
+  }
+  return items;
+}
+
+function toggleChecklist() {
+  let items = selectedListItems();
+  if (items.length === 0) {
+    document.execCommand("insertUnorderedList", false, null);
+    items = selectedListItems();
+  }
+
+  items.forEach((li) => {
+    li.dataset.checked = li.dataset.checked === "true" ? "true" : "false";
+    const list = li.closest("ul, ol");
+    if (!list) return;
+
+    let target = list;
+    if (list.nodeName !== "UL") {
+      target = document.createElement("ul");
+      while (list.firstChild) target.appendChild(list.firstChild);
+      list.replaceWith(target);
+    }
+    target.dataset.type = "checklist";
+  });
+
+  cleanWebKitStyles();
+}
+
 function cleanWebKitStyles() {
   textEl
     .querySelectorAll("font[size]")
@@ -230,6 +280,12 @@ function cleanWebKitStyles() {
   });
 }
 
+function normalizeChecklistMarkup() {
+  textEl.querySelectorAll('ul[data-type="checklist"] > li').forEach((li) => {
+    if (li.dataset.checked !== "true") li.dataset.checked = "false";
+  });
+}
+
 formatPopover.addEventListener("click", (e) => {
   const swatch = e.target.closest(".color-swatch");
   if (swatch) {
@@ -255,6 +311,10 @@ formatPopover.addEventListener("click", (e) => {
     ["bold", "italic", "underline", "strikeThrough"].forEach((s) => {
       if (document.queryCommandState(s)) document.execCommand(s, false, null);
     });
+  } else if (cmd === "toggleMonospace") {
+    setMonospace(!state.monospace);
+  } else if (cmd === "toggleChecklist") {
+    toggleChecklist();
   } else if (cmd === "formatBlock" && val) {
     applyBlockFormat(val);
   } else if (["insertUnorderedList", "insertOrderedList"].includes(cmd)) {
@@ -266,6 +326,19 @@ formatPopover.addEventListener("click", (e) => {
 
   // Do not close the popover automatically so user can select multiple formatting options
 
+  state.text = sanitizeHTML(textEl.innerHTML);
+  push();
+});
+
+textEl.addEventListener("click", (e) => {
+  const li = e.target.closest('ul[data-type="checklist"] > li');
+  if (!li || !textEl.contains(li)) return;
+
+  const rect = li.getBoundingClientRect();
+  const clickX = e.clientX - rect.left;
+  if (clickX > 24) return;
+
+  li.dataset.checked = li.dataset.checked === "true" ? "false" : "true";
   state.text = sanitizeHTML(textEl.innerHTML);
   push();
 });
@@ -288,7 +361,13 @@ document.addEventListener("selectionchange", () => {
 
       let isActive = false;
       try {
-        if (
+        if (cmd === "toggleMonospace") {
+          isActive = state.monospace;
+        } else if (cmd === "toggleChecklist") {
+          isActive = selectedListItems().some(
+            (li) => li.parentElement?.dataset.type === "checklist",
+          );
+        } else if (
           [
             "bold",
             "italic",
@@ -385,12 +464,27 @@ function sanitizeHTML(html) {
           colorAttr = "";
         }
 
+        const isChecklist =
+          node.tagName.toUpperCase() === "UL" &&
+          node.getAttribute("data-type") === "checklist";
+        const checked =
+          node.tagName.toUpperCase() === "LI" &&
+          node.getAttribute("data-checked") === "true";
+
         while (node.attributes.length > 0) {
           node.removeAttribute(node.attributes[0].name);
         }
 
         if (colorFromStyle) node.style.color = colorFromStyle;
         if (colorAttr) node.setAttribute("color", colorAttr);
+        if (isChecklist) node.setAttribute("data-type", "checklist");
+        if (node.tagName.toUpperCase() === "LI" && node.parentElement) {
+          const parentIsChecklist =
+            node.parentElement.getAttribute("data-type") === "checklist";
+          if (parentIsChecklist) {
+            node.setAttribute("data-checked", checked ? "true" : "false");
+          }
+        }
         Array.from(node.childNodes).forEach(walk);
       }
     }
@@ -416,6 +510,7 @@ function applyState() {
   if (textEl.innerHTML !== content) {
     textEl.innerHTML = content;
   }
+  normalizeChecklistMarkup();
 
   applyGhost();
   applyPinned();
@@ -475,6 +570,7 @@ textEl.addEventListener("paste", (e) => {
     document.execCommand("insertHTML", false, sanitizeHTML(parsed));
   }
   cleanWebKitStyles();
+  normalizeChecklistMarkup();
 });
 
 opacityEl.addEventListener("input", () => {
@@ -543,7 +639,22 @@ function parseMarkdownToHTML(text) {
   });
 
   html = html.replace(
-    /(?:^|\n)([\-\*]\s+[^\n]*(?:\n[\-\*]\s+[^\n]*)*)/g,
+    /(?:^|\n)((?:[\-\*]\s+\[[ xX]\]\s+[^\n]*)(?:\n[\-\*]\s+\[[ xX]\]\s+[^\n]*)*)/g,
+    (match, p1) => {
+      const listItems = p1
+        .trim()
+        .split("\n")
+        .map((line) => {
+          const checked = /^[\-\*]\s+\[[xX]\]/.test(line);
+          const text = line.replace(/^[\-\*]\s+\[[ xX]\]\s+/, "");
+          return `<li data-checked="${checked ? "true" : "false"}">${text}</li>`;
+        })
+        .join("");
+      return `\n<ul data-type="checklist">${listItems}</ul>`;
+    },
+  );
+  html = html.replace(
+    /(?:^|\n)([\-\*]\s+(?!\[[ xX]\]\s)[^\n]*(?:\n[\-\*]\s+(?!\[[ xX]\]\s)[^\n]*)*)/g,
     (match, p1) => {
       const listItems = p1
         .trim()

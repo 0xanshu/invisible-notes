@@ -19,7 +19,7 @@
       property="og:description"
       content="Floating notes visible only to you. Invisible to screen shares and recordings."
     />
-    <meta property="og:image" content="assets/og-image.png" />
+    <meta property="og:image" content="assets/notes-manager.png" />
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
 
@@ -56,8 +56,10 @@
         </a>
 
         <nav class="nav-links" role="navigation" aria-label="Primary">
-          <a href="#features">Features</a>
           <a href="#how-it-works">How it works</a>
+          <a href="#features">Features</a>
+          <a href="#manager">Manager</a>
+          <a href="#shortcuts">Shortcuts</a>
           <a href="#faq">FAQ</a>
         </nav>
 
@@ -94,6 +96,8 @@
 
       <div class="nav-mobile" id="navMobile" hidden>
         <a href="#features">Features</a>
+        <a href="#manager">Manager</a>
+        <a href="#shortcuts">Shortcuts</a>
         <a href="#how-it-works">How it works</a>
         <a href="#faq">FAQ</a>
         <a href="#" id="navGithubMob" target="_blank" rel="noopener">
@@ -205,6 +209,10 @@
                 <path d="M7 11V7a5 5 0 0110 0v4" />
               </svg>
               100% local
+              <span class="sep">·</span>
+              Workspaces
+              <span class="sep">·</span>
+              Custom shortcuts
               <span class="sep">·</span>
               No account
               <span class="sep">·</span>
@@ -400,13 +408,7 @@
               <span class="dot dot-green"></span>
               Your screen
             </div>
-            <div class="split-img local-ph">
-              <img
-                src="assets/demo-local.png"
-                alt="Your screen with note visible"
-                onerror="this.style.display = 'none'"
-              />
-            </div>
+            <div class="split-img local-ph"></div>
           </div>
 
           <div class="split-divider">
@@ -432,13 +434,7 @@
               <span class="dot dot-red"></span>
               In the recording
             </div>
-            <div class="split-img shared-ph">
-              <img
-                src="assets/demo-shared.png"
-                alt="Screen recording with note absent"
-                onerror="this.style.display = 'none'"
-              />
-            </div>
+            <div class="split-img shared-ph"></div>
           </div>
         </div>
       </div>
@@ -451,8 +447,8 @@
           <div class="section-eyebrow reveal">Built for focus</div>
           <h2 class="reveal">Everything you need,<br />nothing you don't.</h2>
           <p class="reveal">
-            Powerful features to keep your notes private, accessible, and out of
-            the way.
+            Keep prompts, snippets, and reminders available on your screen,
+            organized by context, and absent from every recording.
           </p>
         </div>
 
@@ -490,18 +486,12 @@
                   <span class="mini-dot yellow"></span>
                   <span class="mini-dot green"></span>
                 </div>
-                <div class="mini-body no-note">
-                  <img
-                    src="assets/feature-invisible.png"
-                    alt=""
-                    onerror="this.style.display = 'none'"
-                  />
-                </div>
+                <div class="mini-body no-note"></div>
               </div>
             </div>
           </div>
 
-          <!-- 2. Always on top -->
+          <!-- 2. Pin or unpin -->
           <div class="feature-card">
             <div class="feature-card-text">
               <div class="feature-icon">
@@ -521,10 +511,10 @@
                   />
                 </svg>
               </div>
-              <h3>Always on top</h3>
+              <h3>Pin when it matters</h3>
               <p>
-                Notes float above all other windows, including fullscreen apps,
-                so your talking points are always in view.
+                Keep a note above every app, or unpin it so it behaves like a
+                normal window when you switch contexts.
               </p>
             </div>
             <div class="feature-visual">
@@ -535,11 +525,6 @@
                   <span class="mini-dot green"></span>
                 </div>
                 <div class="mini-body with-note">
-                  <img
-                    src="assets/feature-always-top.png"
-                    alt=""
-                    onerror="this.style.display = 'none'"
-                  />
                   <div class="mock-note">
                     Talking points:<br />• Intro<br />• Demo<br />• Q&A
                   </div>
@@ -574,11 +559,6 @@
                   <span class="mini-dot green"></span>
                 </div>
                 <div class="mini-body with-note">
-                  <img
-                    src="assets/feature-clickthrough.png"
-                    alt=""
-                    onerror="this.style.display = 'none'"
-                  />
                   <div class="mock-note" style="opacity: 0.45">
                     Click-through<br />enabled
                   </div>
@@ -587,7 +567,7 @@
             </div>
           </div>
 
-          <!-- 4. Beautifully simple -->
+          <!-- 4. Style each note -->
           <div class="feature-card">
             <div class="feature-card-text">
               <div class="feature-icon">
@@ -608,10 +588,10 @@
                   />
                 </svg>
               </div>
-              <h3>Beautifully simple</h3>
+              <h3>Style each note</h3>
               <p>
-                Change color, opacity, and text size in one click. Drag to move,
-                drag edges to resize.
+                Change color, opacity, text size, and code-friendly monospace
+                mode from the hover bar.
               </p>
             </div>
             <div class="feature-visual">
@@ -622,15 +602,7 @@
                   <span class="mini-dot green"></span>
                 </div>
                 <div class="mini-body">
-                  <img
-                    src="assets/feature-colors.png"
-                    alt=""
-                    onerror="
-                      this.style.display = 'none';
-                      this.nextElementSibling.style.display = 'flex';
-                    "
-                  />
-                  <div class="mock-colors" style="display: none; width: 100%">
+                  <div class="mock-colors" style="width: 100%">
                     <div class="color-swatches">
                       <div
                         class="color-swatch"
@@ -679,7 +651,7 @@
             </div>
           </div>
 
-          <!-- 5. Notes Manager -->
+          <!-- 5. Workspaces -->
           <div class="feature-card">
             <div class="feature-card-text">
               <div class="feature-icon">
@@ -702,10 +674,10 @@
                   <line x1="3" y1="18" x2="3.01" y2="18" />
                 </svg>
               </div>
-              <h3>Notes Manager</h3>
+              <h3>Workspaces</h3>
               <p>
-                Closing a note doesn't delete it. Search, reopen, rename, and
-                delete from one place.
+                Group notes by client, interview, project, or stream. Switch
+                workspaces without mixing every thought into one list.
               </p>
             </div>
             <div class="feature-visual">
@@ -716,30 +688,22 @@
                   <span class="mini-dot green"></span>
                 </div>
                 <div class="mini-body" style="align-items: flex-start">
-                  <img
-                    src="assets/feature-manager.png"
-                    alt=""
-                    onerror="
-                      this.style.display = 'none';
-                      this.nextElementSibling.style.display = 'flex';
-                    "
-                  />
-                  <div class="mock-manager" style="display: none; width: 100%">
-                    <div class="mock-manager-search">Search notes…</div>
+                  <div class="mock-manager" style="width: 100%">
+                    <div class="mock-manager-search">All notes</div>
                     <div class="mock-manager-row">
                       <div class="mock-dot" style="background: #5b4bff"></div>
                       <div class="mock-manager-title">Interview prep</div>
-                      <div class="mock-manager-date">Today</div>
+                      <div class="mock-manager-date">4</div>
                     </div>
                     <div class="mock-manager-row">
                       <div class="mock-dot" style="background: #3b82f6"></div>
-                      <div class="mock-manager-title">Project ideas</div>
-                      <div class="mock-manager-date">Yesterday</div>
+                      <div class="mock-manager-title">Demo script</div>
+                      <div class="mock-manager-date">7</div>
                     </div>
                     <div class="mock-manager-row">
-                      <div class="mock-dot" style="background: #ef4444"></div>
-                      <div class="mock-manager-title">Daily plan</div>
-                      <div class="mock-manager-date">Apr 24</div>
+                      <div class="mock-dot" style="background: #f97316"></div>
+                      <div class="mock-manager-title">Ideas</div>
+                      <div class="mock-manager-date">12</div>
                     </div>
                   </div>
                 </div>
@@ -747,7 +711,7 @@
             </div>
           </div>
 
-          <!-- 6. 100% local -->
+          <!-- 6. Backup and migrate -->
           <div class="feature-card">
             <div class="feature-card-text">
               <div class="feature-icon">
@@ -766,10 +730,10 @@
                   <path d="M7 11V7a5 5 0 0110 0v4" />
                 </svg>
               </div>
-              <h3>100% local</h3>
+              <h3>Backup and migrate</h3>
               <p>
-                Notes are stored on your device only. No account. No cloud. No
-                telemetry.
+                Export every note to a JSON backup, then import it later by
+                merging with your notes or replacing them.
               </p>
             </div>
             <div class="feature-visual">
@@ -792,12 +756,13 @@
                       stroke-linejoin="round"
                       aria-hidden="true"
                     >
-                      <rect x="3" y="11" width="18" height="11" rx="2" />
-                      <path d="M7 11V7a5 5 0 0110 0v4" />
+                      <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+                      <polyline points="7 10 12 15 17 10" />
+                      <line x1="12" y1="15" x2="12" y2="3" />
                     </svg>
                     <span
-                      >Your data stays<br /><strong
-                        >on your device</strong
+                      >Export all notes<br /><strong
+                        >Import safely</strong
                       ></span
                     >
                   </div>
@@ -815,12 +780,20 @@
       <div class="wrap manager-inner">
         <div class="manager-text">
           <div class="section-eyebrow">Notes Manager</div>
-          <h2>Close it.<br />Never lose it.</h2>
+          <h2>A small control center<br />for every note.</h2>
           <p>
-            Closing a note simply hides it, nothing gets deleted. Every note
-            lives in the Notes Manager until you decide to remove it, and you
-            can search, reopen, rename, or delete any of them from one place.
+            Closing a note simply hides it. The manager keeps everything
+            searchable, lets you organize notes into workspaces, and gives you
+            one place for appearance, shortcuts, import, and export.
           </p>
+          <div class="manager-points" aria-label="Manager features">
+            <span>Search all notes</span>
+            <span>Create workspaces</span>
+            <span>Move notes between workspaces</span>
+            <span>Light, dark, and system themes</span>
+            <span>Accent color settings</span>
+            <span>JSON backup import/export</span>
+          </div>
           <div class="manager-shortcut">
             Open with
             <kbd>&#8984;</kbd><kbd>&#8679;</kbd><kbd>M</kbd>
@@ -828,16 +801,63 @@
           </div>
         </div>
 
-        <div class="manager-visual">
-          <img
-            src="assets/notes-manager.png"
-            alt="Ghost Notes Manager showing a list of saved notes with search"
-            onerror="
-              this.style.display = 'none';
-              this.nextElementSibling.style.display = 'block';
-            "
-          />
-          <div class="manager-ph" style="display: none"></div>
+        <div class="manager-visual product-surface">
+          <div
+            class="manager-ph"
+            role="img"
+            aria-label="Ghost Notes Manager with workspace navigation, searchable notes, and settings"
+          >
+            <div class="manager-mock-sidebar">
+              <div class="manager-mock-brand">
+                <img src="favicon.svg" alt="" width="18" height="18" />
+                Ghost Notes
+              </div>
+              <div class="manager-mock-label">Workspaces</div>
+              <div class="manager-mock-ws active">
+                <span style="background: #334155"></span>All notes<b>23</b>
+              </div>
+              <div class="manager-mock-ws">
+                <span style="background: #3b82f6"></span>Demos<b>7</b>
+              </div>
+              <div class="manager-mock-ws">
+                <span style="background: #f97316"></span>Ideas<b>12</b>
+              </div>
+              <div class="manager-mock-footer">Appearance</div>
+              <div class="manager-mock-footer">Keyboard shortcuts</div>
+              <div class="manager-mock-footer">Storage</div>
+            </div>
+            <div class="manager-mock-main">
+              <div class="manager-mock-toolbar">
+                <span>All notes · 23 notes</span>
+                <button>New</button>
+              </div>
+              <div class="manager-mock-search">Search notes...</div>
+              <div class="manager-mock-note open">
+                <span style="background: #f0e27f"></span>
+                <div>
+                  <strong>Interview prep</strong
+                  ><small>Project overview and decisions</small>
+                </div>
+                <em>Today</em>
+              </div>
+              <div class="manager-mock-note">
+                <span style="background: #bbf7d0"></span>
+                <div>
+                  <strong>Demo checkpoints</strong
+                  ><small>Open app, verify share, explain flow</small>
+                </div>
+                <em>2h ago</em>
+              </div>
+              <div class="manager-mock-note">
+                <span style="background: #bfdbfe"></span>
+                <div>
+                  <strong>Code snippet</strong
+                  ><small>Monospace mode notes</small>
+                </div>
+                <em>Yesterday</em>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </section>
@@ -966,9 +986,9 @@
           <div class="shortcuts-text reveal">
             <h2>Keyboard<br />shortcuts</h2>
             <p>
-              Standard shortcuts activate only while a Ghost Notes window has
-              focus. A separate global recovery shortcut creates a note when
-              every window is hidden.
+              View every active shortcut in the app, edit a binding in place, or
+              reset it to the default. Standard shortcuts stay scoped to Ghost
+              Notes; the recovery shortcut works anywhere.
             </p>
           </div>
 
@@ -1094,6 +1114,102 @@
                   content protection API. Windows needs build 19041 (May 2020
                   Update) or newer, and the app will let you know on launch if
                   yours is older.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <button class="faq-q" aria-expanded="false">
+              <span class="faq-q-icon">
+                <svg
+                  width="13"
+                  height="13"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <line x1="12" y1="5" x2="12" y2="19" />
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+              </span>
+              <span class="faq-q-text">Can I organize notes by project?</span>
+              <span class="faq-chev" aria-hidden="true"></span>
+            </button>
+            <div class="faq-a">
+              <div class="faq-a-inner">
+                <p>
+                  Yes. The Notes Manager supports workspaces, an all-notes view,
+                  and moving individual notes between workspaces.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <button class="faq-q" aria-expanded="false">
+              <span class="faq-q-icon">
+                <svg
+                  width="13"
+                  height="13"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <line x1="12" y1="5" x2="12" y2="19" />
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+              </span>
+              <span class="faq-q-text"
+                >Can I customize keyboard shortcuts?</span
+              >
+              <span class="faq-chev" aria-hidden="true"></span>
+            </button>
+            <div class="faq-a">
+              <div class="faq-a-inner">
+                <p>
+                  Yes. Open Keyboard Shortcuts from the tray or Notes Manager,
+                  click the edit button beside a shortcut, press the new keys,
+                  and reset to defaults whenever you want.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <button class="faq-q" aria-expanded="false">
+              <span class="faq-q-icon">
+                <svg
+                  width="13"
+                  height="13"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <line x1="12" y1="5" x2="12" y2="19" />
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+              </span>
+              <span class="faq-q-text">Can I back up my notes?</span>
+              <span class="faq-chev" aria-hidden="true"></span>
+            </button>
+            <div class="faq-a">
+              <div class="faq-a-inner">
+                <p>
+                  Yes. Export creates a plain JSON backup of your notes. Import
+                  can merge that backup with your current notes or replace them.
                 </p>
               </div>
             </div>

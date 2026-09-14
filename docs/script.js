@@ -219,6 +219,7 @@
   (function initMotion() {
     const M = window.Motion;
     if (!M) return; // CDN failed — .no-motion CSS fallback handles visibility
+    document.documentElement.classList.add("motion-ready");
 
     const { animate, inView, stagger } = M;
 
