@@ -101,6 +101,9 @@ function defaultRecord(overrides = {}) {
     opacity: typeof overrides.opacity === "number" ? overrides.opacity : 0.85,
     fontSize: overrides.fontSize || 15,
     monospace: !!overrides.monospace,
+    rich: !!overrides.rich,
+    // Which workspace this note belongs to (issue #8). Independent of
+    // `visible`. See the note on effective visibility below.
     workspaceId: overrides.workspaceId || DEFAULT_WORKSPACE_ID,
     ghost: !!overrides.ghost,
     visible: overrides.visible !== undefined ? !!overrides.visible : true,
