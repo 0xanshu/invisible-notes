@@ -1,8 +1,6 @@
-// Multi-monitor recovery: keep note windows reachable even after a
-// monitor is disconnected, or the saved position lands outside any
-// currently connected display's work area.
+// Keep notes on a connected display after monitor or work-area changes.
 const { screen } = require("electron");
-const { DEFAULT_NOTE_WIDTH, DEFAULT_NOTE_HEIGHT } = require("./noteSize");
+const { DEFAULT_NOTE_WIDTH, DEFAULT_NOTE_HEIGHT } = require("./note/noteSize");
 
 function rectsIntersect(a, b) {
   return (
@@ -13,8 +11,6 @@ function rectsIntersect(a, b) {
   );
 }
 
-// Returns { x, y, width, height, displayId } guaranteed to be at least
-// partially on-screen on some connected display.
 function clampToVisibleDisplay({ x, y, width, height }) {
   const w = width || DEFAULT_NOTE_WIDTH;
   const h = height || DEFAULT_NOTE_HEIGHT;
@@ -26,8 +22,6 @@ function clampToVisibleDisplay({ x, y, width, height }) {
     if (onScreen) return { x, y, width: w, height: h, displayId: onScreen.id };
   }
 
-  // Off-screen, or no saved position yet: place on the primary display's
-  // work area, near the top-left with a small inset.
   const primary = screen.getPrimaryDisplay();
   const wa = primary.workArea;
   return {

@@ -10,11 +10,10 @@ contextBridge.exposeInMainWorld("manager", {
   onChanged: (cb) =>
     ipcRenderer.on("manager:notesChanged", (e, snapshot) => cb(snapshot)),
   version: () => ipcRenderer.invoke("manager:version"),
-  // Shortcut legend (issue #20)
   shortcuts: () => ipcRenderer.invoke("manager:shortcuts"),
   onShowShortcuts: (cb) => ipcRenderer.on("manager:showShortcuts", () => cb()),
-  // Workspaces (issue #8)
   setWorkspace: (id) => ipcRenderer.send("manager:setWorkspace", id),
+  setListScope: (id) => ipcRenderer.send("manager:setListScope", id),
   createWorkspace: (name) => ipcRenderer.send("manager:createWorkspace", name),
   renameWorkspace: (id, name) =>
     ipcRenderer.send("manager:renameWorkspace", { id, name }),
@@ -23,7 +22,9 @@ contextBridge.exposeInMainWorld("manager", {
     ipcRenderer.send("manager:moveNote", { id, workspaceId }),
   exportAll: () => ipcRenderer.invoke("manager:export"),
   importNotes: () => ipcRenderer.invoke("manager:import"),
-  // Appearance (Manager-only theme + accent)
   setTheme: (mode) => ipcRenderer.send("manager:setTheme", mode),
   setAccent: (id) => ipcRenderer.send("manager:setAccent", id),
+  setSidebarOpen: (isOpen) =>
+    ipcRenderer.send("manager:setSidebarOpen", !!isOpen),
+  openHelp: () => ipcRenderer.send("manager:openHelp"),
 });

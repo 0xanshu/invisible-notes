@@ -33,11 +33,6 @@ let state = {
 const noteEl = document.querySelector(".note");
 const barEl = document.querySelector(".bar");
 
-// --- Click-through ("ghost") mode ---
-// When on, the note ignores mouse events (clicks reach whatever is behind it),
-// EXCEPT while the cursor is over the toolbar — so you can still toggle it off,
-// drag, or recolor. `forward:true` in the main process keeps mousemove events
-// flowing to us even while clicks are being ignored, which powers this.
 let ignoring = false;
 function setIgnore(v) {
   if (v === ignoring) return;
@@ -48,12 +43,10 @@ function setIgnore(v) {
 function applyGhost() {
   noteEl.classList.toggle("ghost", state.ghost);
   if (state.ghost) {
-    setIgnore(true); // pass clicks through by default; the toolbar re-enables
+    setIgnore(true);
   } else {
-    setIgnore(false); // fully interactive again
+    setIgnore(false);
   }
-  // While ghosted, the note is always forced on top (main process) so it
-  // stays reachable — the pin toggle has no effect until ghost ends.
   pinBtn.disabled = state.ghost;
   pinBtn.style.opacity = state.ghost ? "0.25" : "";
 }
@@ -66,15 +59,9 @@ function setGhost(on) {
 
 window.addEventListener("mousemove", (e) => {
   if (!state.ghost) return;
-  // Re-enable interaction only while hovering the toolbar.
   setIgnore(!e.target.closest(".bar"));
 });
 
-// --- Pin (always-on-top) toggle ---
-// Pinned notes stay above whatever app you switch to, on both macOS and
-// Windows. Unpinned notes behave like a normal window and get covered by
-// whatever's currently focused. The main process owns the actual
-// setAlwaysOnTop call; this just reflects/requests the state.
 function applyPinned() {
   pinBtn.classList.toggle("active", state.pinned);
   pinBtn.title = state.pinned
@@ -90,9 +77,6 @@ function setPinned(on) {
 
 pinBtn.addEventListener("click", () => setPinned(!state.pinned));
 
-// --- Monospace (code snippet) toggle ---
-// Proportional system UI font is the default; {} switches the textarea to
-// a stacked monospace family so code walkthrough notes stay aligned.
 function applyMonospace() {
   noteEl.classList.toggle("mono", state.monospace);
   monoBtn.classList.toggle("active", state.monospace);
@@ -118,10 +102,6 @@ function applyColor(color) {
   }
 }
 
-// --- Compact color popover ---
-// Keep header minimal: one dot button opens a small palette instead of
-// showing every swatch inline. Lives inside .bar so it inherits the same
-// drag/no-drag and ghost-mode hover-to-interact rules as the rest of the toolbar.
 function setColorPopoverOpen(open) {
   colorPopover.classList.toggle("open", open);
 }
@@ -158,7 +138,6 @@ function push() {
   });
 }
 
-// Build swatches
 for (const name of Object.keys(COLORS)) {
   const s = document.createElement("div");
   s.className = "swatch";
@@ -174,7 +153,6 @@ for (const name of Object.keys(COLORS)) {
   swatchesEl.appendChild(s);
 }
 
-// Events
 textEl.addEventListener("input", () => {
   state.text = textEl.value;
   push();
@@ -206,14 +184,10 @@ document
   .getElementById("close")
   .addEventListener("click", () => window.notes.close(id));
 
-// Global hotkey / tray toggles this note from the main process.
 window.notes.onToggleGhost(() => setGhost(!state.ghost));
 
-// Load persisted state
 window.notes.getState(id).then((s) => {
   if (s) state = Object.assign(state, s);
-  // Older records (pre-v4) may omit this; normalize missing to false
-  // so the renderer always treats monospace as a boolean.
   state.monospace = !!state.monospace;
   applyState();
   textEl.focus();

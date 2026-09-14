@@ -11,7 +11,7 @@ const {
   getShortcuts,
   BINDINGS,
   FALLBACK_BINDING,
-} = require("../shortcuts");
+} = require("../manager/shortcuts");
 
 function shortcutInput(key, overrides = {}) {
   return {
@@ -119,12 +119,6 @@ test("registers and unregisters the global recovery shortcut", () => {
   assert.equal(unregisteredBinding, FALLBACK_BINDING);
 });
 
-// The legend, the tray menu and the matcher all read from one definition list.
-// These guard the derivation, so a shortcut can never be displayed somewhere
-// as a binding the app does not actually answer to.
-// Builds the key event a user pressing this accelerator would actually
-// produce, so the assertion below tests the accelerator as written rather
-// than restating what the matcher already assumes.
 function inputForAccelerator(accelerator) {
   const parts = accelerator.split("+");
   const key = parts[parts.length - 1];
@@ -182,14 +176,10 @@ test("formats accelerators the way this platform writes them", () => {
     platform.formatAccelerator("CommandOrControl+Shift+N"),
     platform.isMac ? "⇧⌘N" : "Ctrl+Shift+N",
   );
-  // macOS orders modifiers ctrl-opt-shift-cmd regardless of how the
-  // accelerator was written; Windows keeps the written order.
   assert.equal(
     platform.formatAccelerator("CommandOrControl+Alt+Shift+N"),
     platform.isMac ? "⌥⇧⌘N" : "Ctrl+Alt+Shift+N",
   );
-  // CmdOrCtrl is Electron's documented alias for CommandOrControl and is used
-  // elsewhere in the app, so the formatter has to understand both spellings.
   assert.equal(
     platform.formatAccelerator("CmdOrCtrl+Q"),
     platform.isMac ? "⌘Q" : "Ctrl+Q",

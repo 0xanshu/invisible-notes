@@ -1,16 +1,13 @@
-// Notes Manager: the only place a note record can be permanently deleted.
-// Owns its own BrowserWindow (singleton) and IPC surface; note lifecycle
-// actions (show/hide/delete/rename/import) are injected so this module never
-// mutates the store directly — main.js stays the single source of truth.
+// Notes Manager window and IPC; note mutations are injected from main.js.
 const path = require("path");
 const fs = require("fs");
-const { app, BrowserWindow, ipcMain, dialog } = require("electron");
+const { app, BrowserWindow, ipcMain, dialog, shell } = require("electron");
 const { registerShortcuts, getShortcuts } = require("./shortcuts");
 const {
   sanitizeWorkspaceName,
   STORE_VERSION,
   normalizeImport,
-} = require("./store");
+} = require("../store");
 
 const MAX_TITLE_LENGTH = 80;
 
@@ -25,17 +22,15 @@ function sanitizeTitle(input) {
 function createManagerModule({ store, actions, theme }) {
   let win = null;
 
-  // One payload for both the initial load and every update, so the renderer
-  // always sees notes and workspaces from the same consistent snapshot. A
-  // note can never render against a workspace list that doesn't contain it.
-  // Theme/accent ride along so Manager never paints notes with a stale theme.
   function snapshot() {
     return {
       notes: store.all(),
       workspaces: store.workspaces(),
       activeWorkspace: store.activeWorkspaceId(),
+      listScope: store.listScope(),
       theme: store.getTheme(),
       accent: store.getAccent(),
+      sidebarOpen: store.isSidebarOpen(),
       effectiveDark: theme ? theme.effectiveDark() : false,
     };
   }
@@ -46,10 +41,6 @@ function createManagerModule({ store, actions, theme }) {
     }
   }
 
-  // `showShortcuts` opens the window straight onto the shortcut legend — the
-  // tray's "Keyboard Shortcuts…" item. Also called as a plain click/shortcut
-  // handler, which passes an event object with no such property, so anything
-  // that isn't an explicit request just opens the note list as before.
   function openManagerWindow(options = {}) {
     const showShortcuts = !!options.showShortcuts;
     if (win && !win.isDestroyed()) {
@@ -59,10 +50,10 @@ function createManagerModule({ store, actions, theme }) {
       return;
     }
     win = new BrowserWindow({
-      width: 420,
-      height: 580,
-      minWidth: 340,
-      minHeight: 360,
+      width: 840,
+      height: 640,
+      minWidth: 560,
+      minHeight: 420,
       title: "Notes Manager",
       show: false,
       webPreferences: {
@@ -78,10 +69,8 @@ function createManagerModule({ store, actions, theme }) {
       toggleGhostAll: actions.toggleGhostAll,
       openManager: openManagerWindow,
     });
-    win.loadFile("manager.html");
+    win.loadFile(path.join(__dirname, "manager.html"));
     win.once("ready-to-show", () => win.show());
-    // did-finish-load rather than ready-to-show: the renderer has to have run
-    // its scripts before it can be listening for this.
     if (showShortcuts) {
       win.webContents.once("did-finish-load", () =>
         win.webContents.send("manager:showShortcuts"),
@@ -96,10 +85,23 @@ function createManagerModule({ store, actions, theme }) {
   ipcMain.handle("manager:version", () => app.getVersion());
   ipcMain.handle("manager:shortcuts", () => getShortcuts());
 
-  // ---------- Workspaces (issue #8) ----------
   ipcMain.on("manager:setWorkspace", (e, id) => {
     if (typeof id !== "string") return;
     actions.setActiveWorkspace(id);
+  });
+
+  ipcMain.on("manager:setListScope", (e, id) => {
+    if (typeof id !== "string") return;
+    if (actions.setListScope) actions.setListScope(id);
+  });
+
+  ipcMain.on("manager:setSidebarOpen", (e, isOpen) => {
+    store.setSidebarOpen(isOpen);
+    notifyChanged();
+  });
+
+  ipcMain.on("manager:openHelp", () => {
+    shell.openExternal("https://github.com/navyabijoy/invisible-notes/issues");
   });
 
   ipcMain.on("manager:createWorkspace", (e, name) => {
@@ -125,7 +127,6 @@ function createManagerModule({ store, actions, theme }) {
     actions.moveNoteToWorkspace(payload.id, payload.workspaceId);
   });
 
-  // ---------- Appearance (Manager-only theme + accent) ----------
   ipcMain.on("manager:setTheme", (e, mode) => {
     if (typeof mode !== "string") return;
     if (actions.setTheme) actions.setTheme(mode);
@@ -136,9 +137,6 @@ function createManagerModule({ store, actions, theme }) {
     if (actions.setAccent) actions.setAccent(id);
   });
 
-  // Deleting a workspace never deletes notes, it reassigns them. The
-  // confirmation says so explicitly, and names the count, so the user is
-  // never guessing what happens to the notes inside.
   ipcMain.on("manager:deleteWorkspace", async (e, id) => {
     if (typeof id !== "string") return;
     const workspace = store.getWorkspace(id);
@@ -160,8 +158,6 @@ function createManagerModule({ store, actions, theme }) {
 
     const noteCount = store.notesInWorkspace(id).length;
     const plural = noteCount === 1 ? "" : "s";
-    // Name the workspace the notes will actually land in. Hardcoding
-    // "Default" is wrong once that workspace has been renamed or deleted.
     const fallback = store.fallbackWorkspaceFor(id);
     const detail =
       noteCount === 0
@@ -220,11 +216,6 @@ function createManagerModule({ store, actions, theme }) {
     return win && !win.isDestroyed() ? win : undefined;
   }
 
-  // Export writes a PLAINTEXT JSON copy on purpose: notes.json itself is
-  // encrypted with safeStorage, which is keyed to this OS user on this
-  // machine — an encrypted backup would be unreadable on the machine the
-  // user is migrating to. The file is unencrypted, so users should store
-  // it somewhere safe (noted in the README).
   ipcMain.handle("manager:export", async () => {
     const { canceled, filePath } = await dialog.showSaveDialog(
       managerWindow(),
@@ -279,9 +270,6 @@ function createManagerModule({ store, actions, theme }) {
     } catch (_) {
       records = null;
     }
-    // null means the file isn't a backup at all. An empty array is a valid
-    // backup (notes: []) — e.g. exported from a fresh install — and must be
-    // importable so "Replace" can clear local notes.
     if (!records) {
       dialog.showErrorBox(
         "Could not import notes",

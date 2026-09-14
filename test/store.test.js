@@ -9,19 +9,17 @@ const {
   normalizeImport,
   STORE_VERSION,
   DEFAULT_WORKSPACE_ID,
+  ALL_NOTES_SCOPE,
 } = require("../store");
 const {
   DEFAULT_NOTE_WIDTH,
   MIN_NOTE_WIDTH,
   MIN_NOTE_HEIGHT,
-} = require("../noteSize");
+} = require("../note/noteSize");
 
 const tempDirs = [];
 const stores = [];
 
-// NoteStore reads and writes notes.json at construction, so each test gets its
-// own directory. Passing `seed` writes a store file first, which is how the
-// migration paths are exercised.
 function storeDir(seed) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "ghost-notes-test-"));
   tempDirs.push(dir);
@@ -42,9 +40,6 @@ function freshStore(seed) {
 }
 
 test.after(() => {
-  // Saves are debounced, so settle any pending write before the directories
-  // go away. Otherwise the timer fires against a deleted path and the store
-  // reports a write failure long after the test that caused it has passed.
   for (const store of stores) store.flush();
   for (const dir of tempDirs) fs.rmSync(dir, { recursive: true, force: true });
 });
@@ -94,8 +89,6 @@ test("migrates a v4 file without disturbing per-note state", () => {
     ],
   });
   assert.equal(store.data.version, STORE_VERSION);
-  // An upgrading user must see exactly the notes they saw before, so a note
-  // the user had closed stays closed.
   assert.equal(store.get("a").visible, true);
   assert.equal(store.get("b").visible, false);
   assert.equal(store.get("b").monospace, true);
@@ -116,8 +109,6 @@ test("accepts a v5 file so merge order with the images change does not matter", 
 });
 
 test("keeps settings keys it does not know about", () => {
-  // `settings` is the app-level container; other features will add sibling
-  // keys to it and a workspace migration must not drop them.
   const store = freshStore({
     version: 4,
     settings: { theme: "dark" },
@@ -131,6 +122,71 @@ test("fresh install defaults to system theme and violet accent", () => {
   const store = freshStore();
   assert.equal(store.getTheme(), "system");
   assert.equal(store.getAccent(), "violet");
+});
+
+test("fresh install keeps the manager sidebar closed", () => {
+  const store = freshStore();
+  assert.equal(store.isSidebarOpen(), false);
+});
+
+test("setSidebarOpen persists across reload", () => {
+  const dir = storeDir();
+  const first = openStore(dir);
+  first.setSidebarOpen(true);
+  first.flush();
+  const second = openStore(dir);
+  assert.equal(second.isSidebarOpen(), true);
+});
+
+test("fresh install list scope matches the default workspace", () => {
+  const store = freshStore();
+  assert.equal(store.listScope(), DEFAULT_WORKSPACE_ID);
+});
+
+test("All notes list scope persists across reload", () => {
+  const dir = storeDir();
+  const first = openStore(dir);
+  first.createWorkspace("Work");
+  first.setListScope(ALL_NOTES_SCOPE);
+  first.flush();
+  const second = openStore(dir);
+  assert.equal(second.listScope(), ALL_NOTES_SCOPE);
+  assert.equal(second.activeWorkspaceId(), DEFAULT_WORKSPACE_ID);
+});
+
+test("All notes list scope is refused when only one workspace exists", () => {
+  const store = freshStore();
+  assert.equal(store.setListScope(ALL_NOTES_SCOPE), DEFAULT_WORKSPACE_ID);
+  assert.equal(store.listScope(), DEFAULT_WORKSPACE_ID);
+});
+
+test("switching a workspace leaves All notes", () => {
+  const store = freshStore();
+  const work = store.createWorkspace("Work");
+  store.setListScope(ALL_NOTES_SCOPE);
+  store.setActiveWorkspace(work.id);
+  assert.equal(store.listScope(), work.id);
+});
+
+test("invalid list scope is repaired on load", () => {
+  const store = freshStore({
+    version: STORE_VERSION,
+    settings: {
+      activeWorkspace: DEFAULT_WORKSPACE_ID,
+      listScope: "ws-gone",
+    },
+    workspaces: [{ id: DEFAULT_WORKSPACE_ID, name: "Default", createdAt: 1 }],
+    notes: [],
+  });
+  assert.equal(store.listScope(), DEFAULT_WORKSPACE_ID);
+});
+
+test("deleting the extra workspace clears All notes", () => {
+  const store = freshStore();
+  const work = store.createWorkspace("Work");
+  store.setListScope(ALL_NOTES_SCOPE);
+  store.removeWorkspace(work.id);
+  assert.equal(store.listScope(), DEFAULT_WORKSPACE_ID);
 });
 
 test("sanitizes invalid theme and accent values on load", () => {
@@ -178,8 +234,6 @@ test("repairs notes and an active workspace pointing at a workspace that is gone
       { id: "a", text: "orphan", workspaceId: "ws-vanished", visible: true },
     ],
   });
-  // Otherwise the note would be stranded in a workspace no dropdown lists,
-  // making it unreachable from the UI.
   assert.equal(store.get("a").workspaceId, DEFAULT_WORKSPACE_ID);
   assert.equal(store.activeWorkspaceId(), DEFAULT_WORKSPACE_ID);
 });
@@ -197,9 +251,6 @@ test("collapses duplicate ids, drops non-objects, and repairs a missing id", () 
     ],
     notes: [{ id: "a", text: "x", workspaceId: "ws-ok" }],
   });
-  // The genuine duplicate collapses and the first one wins. `null` is not an
-  // object so it goes. The entry missing an id is a named workspace, so it is
-  // repaired with a generated id rather than silently discarded.
   assert.equal(store.workspaces().length, 3);
   assert.equal(store.getWorkspace(DEFAULT_WORKSPACE_ID).name, "Default");
   assert.ok(store.workspaces().some((w) => w.name === "no id at all"));
@@ -207,8 +258,6 @@ test("collapses duplicate ids, drops non-objects, and repairs a missing id", () 
 });
 
 test("replaces blank ids without merging distinct workspaces", () => {
-  // defaultWorkspace generates an id for a blank one, so deduping on the raw
-  // value would treat these two as the same workspace and drop the second.
   const store = freshStore({
     version: STORE_VERSION,
     settings: {},
@@ -247,7 +296,6 @@ test("creates, renames and switches workspaces", () => {
   store.renameWorkspace(workspace.id, "  Presentation 1\n");
   assert.equal(store.getWorkspace(workspace.id).name, "Presentation 1");
 
-  // A blank rename would wipe the label off the dropdown, so it is ignored.
   store.renameWorkspace(workspace.id, "   ");
   assert.equal(store.getWorkspace(workspace.id).name, "Presentation 1");
 
@@ -293,8 +341,6 @@ test("names the workspace notes will really land in, which is not always Default
   store.create({ text: "one" });
   store.create({ text: "two" });
 
-  // The confirmation dialog asks for this so it can name the destination
-  // instead of claiming the notes go to "Default".
   assert.equal(store.fallbackWorkspaceFor(DEFAULT_WORKSPACE_ID).id, work.id);
 
   const result = store.removeWorkspace(DEFAULT_WORKSPACE_ID);
@@ -340,9 +386,6 @@ test("workspaces and per-note visibility survive a reload", () => {
 });
 
 test("a malformed store file loads instead of crashing on launch", () => {
-  // Reading a field off a null entry throws, and the throw escapes the
-  // JSON.parse try block in _load, so it would surface as a crash at startup
-  // rather than the corrupt-file recovery path.
   const malformed = [
     {
       version: STORE_VERSION,
@@ -436,8 +479,6 @@ test("normalizeImport coerces malformed numeric fields to sane values", () => {
   });
   assert.equal(records.length, 1);
   const r = records[0];
-  // NaN is unusable, so width falls back to the default; height 5 is a real
-  // number, so it is only raised to the minimum.
   assert.equal(r.width, DEFAULT_NOTE_WIDTH);
   assert.equal(r.height, MIN_NOTE_HEIGHT);
   assert.equal(r.opacity, 0.85);

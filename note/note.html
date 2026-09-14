@@ -42,11 +42,7 @@
         box-shadow: 0 6px 22px rgba(0, 0, 0, 0.18);
       }
 
-      /* Drag handle / toolbar.
-     Metrics are kept tight so the full set of controls still fits at the
-     narrowest window width the app allows, and at the smaller widths older
-     notes may have been saved at. Buttons never shrink; the spacer and the
-     opacity slider absorb the loss first. */
+      /* Hover toolbar; spacer and opacity slider shrink first on a narrow note. */
       .bar {
         height: 30px;
         flex: 0 0 30px;
@@ -64,8 +60,7 @@
         opacity: 1;
       }
 
-      /* Click-through ("ghost") mode: keep the toolbar findable so you can turn it
-     back off, and hint that the body now passes clicks through. */
+      /* Ghost mode: keep the toolbar visible and mark the note as click-through. */
       .note.ghost .bar {
         opacity: 1;
       }
@@ -85,8 +80,7 @@
         color: #fff;
       }
 
-      /* Pinned (default) = always-on-top. Unpinned = normal window, dim the
-     pin icon so its state is obvious at a glance. */
+      /* Pin icon is dim when the note is not always-on-top. */
       #pin {
         opacity: 0.4;
       }
@@ -221,7 +215,7 @@
         color: rgba(0, 0, 0, 0.35);
       }
 
-      /* Dark theme readability */
+      /* Dark note color */
       body.dark textarea {
         color: #f2f2f2;
       }

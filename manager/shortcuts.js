@@ -1,20 +1,7 @@
-// App-scoped shortcuts. Listening on a Ghost Notes window's webContents keeps
-// these bindings inactive while another app has focus, so common shortcuts
-// such as Cmd+Shift+N remain available to browsers and IDEs.
-const platform = require("./platform");
+// Shortcuts that apply while a Ghost Notes window is focused.
+const platform = require("../platform");
 
-// Single source of truth for every shortcut the app answers to. The input
-// matcher, the tray menu accelerators and the in-app legend are all derived
-// from this list, so a shortcut can never be advertised as one thing while
-// doing another.
-//
-// `scope` separates the app-scoped bindings — live only while a Ghost Notes
-// window has focus — from the single global binding, which stays registered
-// system-wide so there is always a way back in when every window is hidden.
-// App-scoped bindings all share the CommandOrControl+Shift modifiers that
-// shortcutNameForInput checks; only the final key differs.
-//
-// Order is the order the legend lists them in, and follows the tray menu.
+// Shared shortcut list for matching, tray accelerators, and the in-app legend.
 const SHORTCUTS = [
   {
     id: "newNote",
@@ -63,14 +50,10 @@ const GLOBAL_SHORTCUT = SHORTCUTS.find(
 
 const FALLBACK_BINDING = GLOBAL_SHORTCUT.accelerator;
 
-// id -> accelerator, for callers that only need the string.
 const BINDINGS = Object.fromEntries(
   APP_SHORTCUTS.map((s) => [s.id, s.accelerator]),
 );
 
-// The matcher keys off the final segment of the accelerator rather than a
-// field of its own, so the key the app listens for and the key the legend
-// prints cannot drift apart.
 function keyOf(accelerator) {
   const parts = accelerator.split("+");
   return parts[parts.length - 1];
@@ -84,14 +67,6 @@ const ACTION_BY_CODE = Object.fromEntries(
   APP_SHORTCUTS.map((s) => [`Key${keyOf(s.accelerator).toUpperCase()}`, s.id]),
 );
 
-// The list every UI reads from — the tray menu and the legend in the Notes
-// Manager — with a platform-formatted `display` string so no caller has to
-// know how to render an accelerator.
-//
-// Issue #5 (customizable shortcuts) resolves user overrides on top of these
-// defaults. Keeping the definitions in one list, and deriving the matcher's
-// lookup tables from it instead of hand-maintaining a parallel copy, is what
-// makes that a change in one place rather than four.
 function getShortcuts() {
   return SHORTCUTS.map((shortcut) => ({
     ...shortcut,
