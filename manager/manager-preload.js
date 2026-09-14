@@ -11,6 +11,9 @@ contextBridge.exposeInMainWorld("manager", {
     ipcRenderer.on("manager:notesChanged", (e, snapshot) => cb(snapshot)),
   version: () => ipcRenderer.invoke("manager:version"),
   shortcuts: () => ipcRenderer.invoke("manager:shortcuts"),
+  setShortcut: (id, accelerator) =>
+    ipcRenderer.invoke("manager:setShortcut", { id, accelerator }),
+  resetShortcut: (id) => ipcRenderer.invoke("manager:resetShortcut", id),
   onShowShortcuts: (cb) => ipcRenderer.on("manager:showShortcuts", () => cb()),
   setWorkspace: (id) => ipcRenderer.send("manager:setWorkspace", id),
   setListScope: (id) => ipcRenderer.send("manager:setListScope", id),

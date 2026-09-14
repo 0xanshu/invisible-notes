@@ -788,6 +788,103 @@ function closeWorkspaceForm() {
   wsNameInputEl.value = "";
 }
 
+let recordingShortcutId = null;
+let recordingCleanup = null;
+
+function refreshShortcutsUi() {
+  render();
+  if (!settingsEl.hidden && settingsPane === "shortcuts") renderSettingsBody();
+}
+
+function cancelRecording() {
+  if (recordingCleanup) {
+    recordingCleanup();
+    recordingCleanup = null;
+  }
+  if (recordingShortcutId === null) return;
+  recordingShortcutId = null;
+  refreshShortcutsUi();
+}
+
+function electronKeyFromEvent(e) {
+  if (["Control", "Shift", "Alt", "Meta"].includes(e.key)) return null;
+
+  let key = e.key;
+  if (e.code && e.code.startsWith("Key")) {
+    key = e.code.slice(3).toUpperCase();
+  } else if (e.code && e.code.startsWith("Digit")) {
+    key = e.code.slice(5);
+  } else if (key.length === 1) {
+    key = key.toUpperCase();
+  }
+
+  return key;
+}
+
+function startRecording(shortcut) {
+  if (recordingShortcutId === shortcut.id) {
+    cancelRecording();
+    return;
+  }
+  if (recordingCleanup) {
+    recordingCleanup();
+    recordingCleanup = null;
+  }
+
+  recordingShortcutId = shortcut.id;
+  refreshShortcutsUi();
+
+  const onKeyDown = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (e.key === "Escape") {
+      cancelRecording();
+      return;
+    }
+
+    const key = electronKeyFromEvent(e);
+    if (!key) return;
+
+    const parts = [];
+    if (e.ctrlKey || e.metaKey) {
+      parts.push("CommandOrControl");
+    }
+    if (shortcut.scope === "global") {
+      if (e.altKey) parts.push("Alt");
+      if (e.shiftKey) parts.push("Shift");
+      if (!parts.includes("CommandOrControl") && !parts.includes("Alt")) {
+        parts.unshift("CommandOrControl");
+      }
+    } else {
+      if (!parts.includes("CommandOrControl")) parts.push("CommandOrControl");
+      if (!parts.includes("Shift")) parts.push("Shift");
+    }
+
+    parts.push(key);
+    const newAccelerator = parts.join("+");
+
+    document.removeEventListener("keydown", onKeyDown, { capture: true });
+    recordingCleanup = null;
+
+    const updated = await window.manager.setShortcut(
+      shortcut.id,
+      newAccelerator,
+    );
+
+    recordingShortcutId = null;
+    if (Array.isArray(updated)) {
+      shortcuts = updated;
+    }
+    refreshShortcutsUi();
+  };
+
+  document.addEventListener("keydown", onKeyDown, { capture: true });
+  recordingCleanup = () => {
+    document.removeEventListener("keydown", onKeyDown, { capture: true });
+  };
+}
+
 function shortcutRow(shortcut) {
   const row = document.createElement("div");
   row.className = "sc-row";
@@ -803,9 +900,52 @@ function shortcutRow(shortcut) {
   text.appendChild(descEl);
   const keys = document.createElement("kbd");
   keys.className = "sc-keys";
-  keys.textContent = shortcut.display;
+  if (recordingShortcutId === shortcut.id) {
+    keys.classList.add("kbd-recording");
+    keys.textContent = "Press keys…";
+  } else {
+    keys.textContent = shortcut.display;
+  }
+
+  const actionsEl = document.createElement("div");
+  actionsEl.className = "sc-actions";
+
+  if (shortcut.isCustom) {
+    const resetBtn = document.createElement("button");
+    resetBtn.type = "button";
+    resetBtn.className = "sc-reset-btn";
+    resetBtn.textContent = "Reset";
+    resetBtn.title = "Reset to default";
+    resetBtn.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      cancelRecording();
+      const updated = await window.manager.resetShortcut(shortcut.id);
+      if (Array.isArray(updated)) {
+        shortcuts = updated;
+        refreshShortcutsUi();
+      }
+    });
+    actionsEl.appendChild(resetBtn);
+  }
+
+  const editBtn = document.createElement("button");
+  editBtn.type = "button";
+  editBtn.className = "icon-btn sc-edit-btn";
+  editBtn.title =
+    recordingShortcutId === shortcut.id
+      ? "Cancel recording"
+      : "Change shortcut";
+  editBtn.setAttribute("aria-label", `Change shortcut for ${shortcut.label}`);
+  editBtn.innerHTML = ICONS.pencil;
+  editBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    startRecording(shortcut);
+  });
+  actionsEl.appendChild(editBtn);
+
   row.appendChild(text);
   row.appendChild(keys);
+  row.appendChild(actionsEl);
   return row;
 }
 
@@ -928,6 +1068,7 @@ function renderSettingsBody() {
 function openSettings(pane) {
   closeMenus();
   closeWorkspaceForm();
+  if ((pane || "appearance") !== "shortcuts") cancelRecording();
   settingsPane = pane || "appearance";
   if (settingsEl.hidden) {
     focusBeforeSettings = document.activeElement;
@@ -939,6 +1080,7 @@ function openSettings(pane) {
 }
 
 function closeSettings() {
+  cancelRecording();
   if (settingsEl.hidden) return;
   settingsEl.hidden = true;
   appEl.inert = false;

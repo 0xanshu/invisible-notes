@@ -25,6 +25,7 @@ const {
   registerFallbackShortcut,
   unregisterFallbackShortcut,
   getShortcuts,
+  applyOverrides,
 } = require("./manager/shortcuts");
 const { createManagerModule } = require("./manager/manager");
 
@@ -124,6 +125,11 @@ function createManager() {
       importNotes: (records, mode) => importNotes(records, mode),
       setTheme: (mode) => setThemeMode(mode),
       setAccent: (id) => setAccentId(id),
+      onShortcutsUpdated: () => {
+        unregisterFallbackShortcut(globalShortcut);
+        registerFallbackShortcut(globalShortcut, () => createNoteNearCursor());
+        updateTrayMenu();
+      },
     },
   });
 }
@@ -566,6 +572,7 @@ if (!gotLock) {
     platform.hideDockIconIfMac(app);
 
     store = createStore();
+    applyOverrides(store.getShortcutOverrides());
     manager = createManager();
     applyThemeToOS();
     nativeTheme.on("updated", () => {

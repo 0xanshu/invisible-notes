@@ -40,6 +40,17 @@ function sanitizeListScope(value, workspaceIds, activeId) {
   return activeId;
 }
 
+function sanitizeShortcutOverrides(input) {
+  if (!input || typeof input !== "object" || Array.isArray(input)) return {};
+  const out = {};
+  for (const [id, accelerator] of Object.entries(input)) {
+    if (typeof id !== "string" || typeof accelerator !== "string") continue;
+    const clean = accelerator.trim();
+    if (clean) out[id] = clean;
+  }
+  return out;
+}
+
 function nextId() {
   return (
     "note-" +
@@ -123,6 +134,7 @@ function emptyStore() {
       theme: DEFAULT_THEME,
       accent: DEFAULT_ACCENT,
       sidebarOpen: false,
+      shortcuts: {},
     },
     workspaces: [workspace],
     notes: [],
@@ -172,6 +184,7 @@ function normalizeWorkspaces(data) {
         typeof data.settings?.sidebarOpen === "boolean"
           ? data.settings.sidebarOpen
           : false,
+      shortcuts: sanitizeShortcutOverrides(data.settings?.shortcuts),
     },
     workspaces,
     notes,
@@ -387,6 +400,30 @@ class NoteStore {
 
   settings() {
     return this.data.settings;
+  }
+
+  getShortcutOverrides() {
+    return this.data.settings?.shortcuts || {};
+  }
+
+  setShortcutOverride(id, accelerator) {
+    if (typeof id !== "string" || typeof accelerator !== "string") {
+      return this.getShortcutOverrides();
+    }
+    const clean = accelerator.trim();
+    if (!clean) return this.getShortcutOverrides();
+    if (!this.data.settings.shortcuts) this.data.settings.shortcuts = {};
+    this.data.settings.shortcuts[id] = clean;
+    this.save();
+    return this.data.settings.shortcuts;
+  }
+
+  clearShortcutOverride(id) {
+    if (this.data.settings?.shortcuts && id in this.data.settings.shortcuts) {
+      delete this.data.settings.shortcuts[id];
+      this.save();
+    }
+    return this.data.settings?.shortcuts || {};
   }
 
   getTheme() {

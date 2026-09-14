@@ -43,15 +43,33 @@ const SHORTCUTS = [
   },
 ];
 
-const APP_SHORTCUTS = SHORTCUTS.filter((shortcut) => shortcut.scope === "app");
 const GLOBAL_SHORTCUT = SHORTCUTS.find(
   (shortcut) => shortcut.scope === "global",
 );
 
 const FALLBACK_BINDING = GLOBAL_SHORTCUT.accelerator;
 
-const BINDINGS = Object.fromEntries(
-  APP_SHORTCUTS.map((s) => [s.id, s.accelerator]),
+let activeOverrides = {};
+
+function resolveShortcuts(overrides = activeOverrides) {
+  return SHORTCUTS.map((shortcut) => {
+    const accelerator = overrides[shortcut.id] || shortcut.accelerator;
+    return {
+      ...shortcut,
+      accelerator,
+      defaultAccelerator: shortcut.accelerator,
+      isCustom: Boolean(
+        overrides[shortcut.id] &&
+        overrides[shortcut.id] !== shortcut.accelerator,
+      ),
+    };
+  });
+}
+
+let BINDINGS = Object.fromEntries(
+  resolveShortcuts()
+    .filter((s) => s.scope === "app")
+    .map((s) => [s.id, s.accelerator]),
 );
 
 function keyOf(accelerator) {
@@ -59,16 +77,31 @@ function keyOf(accelerator) {
   return parts[parts.length - 1];
 }
 
-const ACTION_BY_KEY = Object.fromEntries(
-  APP_SHORTCUTS.map((s) => [keyOf(s.accelerator).toLowerCase(), s.id]),
-);
+let ACTION_BY_KEY = {};
+let ACTION_BY_CODE = {};
 
-const ACTION_BY_CODE = Object.fromEntries(
-  APP_SHORTCUTS.map((s) => [`Key${keyOf(s.accelerator).toUpperCase()}`, s.id]),
-);
+function buildLookupTables(overrides = activeOverrides) {
+  const appShortcuts = resolveShortcuts(overrides).filter(
+    (s) => s.scope === "app",
+  );
+  ACTION_BY_KEY = Object.fromEntries(
+    appShortcuts.map((s) => [keyOf(s.accelerator).toLowerCase(), s.id]),
+  );
+  ACTION_BY_CODE = Object.fromEntries(
+    appShortcuts.map((s) => [`Key${keyOf(s.accelerator).toUpperCase()}`, s.id]),
+  );
+  BINDINGS = Object.fromEntries(appShortcuts.map((s) => [s.id, s.accelerator]));
+}
 
-function getShortcuts() {
-  return SHORTCUTS.map((shortcut) => ({
+buildLookupTables();
+
+function applyOverrides(overrides = {}) {
+  activeOverrides = { ...overrides };
+  buildLookupTables(activeOverrides);
+}
+
+function getShortcuts(overrides = activeOverrides) {
+  return resolveShortcuts(overrides).map((shortcut) => ({
     ...shortcut,
     display: platform.formatAccelerator(shortcut.accelerator),
   }));
@@ -92,26 +125,34 @@ function registerShortcuts(win, actions) {
   });
 }
 
-function registerFallbackShortcut(globalShortcut, handler) {
-  const registered = globalShortcut.register(FALLBACK_BINDING, handler);
+function registerFallbackShortcut(globalShortcut, handler, customBinding) {
+  const binding =
+    customBinding || activeOverrides[GLOBAL_SHORTCUT.id] || FALLBACK_BINDING;
+  const registered = globalShortcut.register(binding, handler);
   if (!registered) {
     console.warn(
-      `Fallback shortcut ${FALLBACK_BINDING} could not be registered — likely in use by another app.`,
+      `Fallback shortcut ${binding} could not be registered — likely in use by another app.`,
     );
   }
   return registered;
 }
 
-function unregisterFallbackShortcut(globalShortcut) {
-  globalShortcut.unregister(FALLBACK_BINDING);
+function unregisterFallbackShortcut(globalShortcut, customBinding) {
+  const binding =
+    customBinding || activeOverrides[GLOBAL_SHORTCUT.id] || FALLBACK_BINDING;
+  globalShortcut.unregister(binding);
 }
 
 module.exports = {
+  SHORTCUTS,
   registerShortcuts,
   registerFallbackShortcut,
   unregisterFallbackShortcut,
   shortcutNameForInput,
   getShortcuts,
-  BINDINGS,
+  applyOverrides,
+  get BINDINGS() {
+    return BINDINGS;
+  },
   FALLBACK_BINDING,
 };

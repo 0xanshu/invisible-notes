@@ -2,7 +2,11 @@
 const path = require("path");
 const fs = require("fs");
 const { app, BrowserWindow, ipcMain, dialog, shell } = require("electron");
-const { registerShortcuts, getShortcuts } = require("./shortcuts");
+const {
+  registerShortcuts,
+  getShortcuts,
+  applyOverrides,
+} = require("./shortcuts");
 const {
   sanitizeWorkspaceName,
   STORE_VERSION,
@@ -83,7 +87,41 @@ function createManagerModule({ store, actions, theme }) {
 
   ipcMain.handle("manager:list", () => snapshot());
   ipcMain.handle("manager:version", () => app.getVersion());
-  ipcMain.handle("manager:shortcuts", () => getShortcuts());
+  ipcMain.handle("manager:shortcuts", () =>
+    getShortcuts(store.getShortcutOverrides()),
+  );
+
+  ipcMain.handle("manager:setShortcut", (e, payload) => {
+    if (
+      !payload ||
+      typeof payload.id !== "string" ||
+      typeof payload.accelerator !== "string"
+    ) {
+      return getShortcuts(store.getShortcutOverrides());
+    }
+    const cleanAccelerator = payload.accelerator.trim();
+    if (!cleanAccelerator) return getShortcuts(store.getShortcutOverrides());
+
+    store.setShortcutOverride(payload.id, cleanAccelerator);
+    const overrides = store.getShortcutOverrides();
+    applyOverrides(overrides);
+    if (actions.onShortcutsUpdated) {
+      actions.onShortcutsUpdated(overrides);
+    }
+    return getShortcuts(overrides);
+  });
+
+  ipcMain.handle("manager:resetShortcut", (e, id) => {
+    if (typeof id !== "string")
+      return getShortcuts(store.getShortcutOverrides());
+    store.clearShortcutOverride(id);
+    const overrides = store.getShortcutOverrides();
+    applyOverrides(overrides);
+    if (actions.onShortcutsUpdated) {
+      actions.onShortcutsUpdated(overrides);
+    }
+    return getShortcuts(overrides);
+  });
 
   ipcMain.on("manager:setWorkspace", (e, id) => {
     if (typeof id !== "string") return;
