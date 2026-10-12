@@ -114,6 +114,7 @@ function defaultRecord(overrides = {}) {
     // `visible`. See the note on effective visibility below.
     workspaceId: overrides.workspaceId || DEFAULT_WORKSPACE_ID,
     ghost: !!overrides.ghost,
+    collapsed: overrides.collapsed === true,
     visible: overrides.visible !== undefined ? !!overrides.visible : true,
     pinned: overrides.pinned !== undefined ? !!overrides.pinned : true,
     createdAt: now,
@@ -233,6 +234,13 @@ function migrate(data) {
     ...n,
     images: Array.isArray(n.images) ? n.images : [],
   }));
+
+  // v8 adds collapsed state; width and height always retain the expanded size.
+  if (!data.version || data.version < 8) {
+    notes = notes.map((n) => ({ ...n, collapsed: false }));
+  } else {
+    notes = notes.map((n) => ({ ...n, collapsed: n.collapsed === true }));
+  }
 
   return normalizeWorkspaces({ ...data, notes });
 }
